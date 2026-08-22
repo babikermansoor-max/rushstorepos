@@ -23,7 +23,13 @@ export const Route = createFileRoute("/_authenticated/pos")({
   component: POS,
 });
 
-type CartLine = { id: string; name: string; price: number; qty: number; stock: number };
+type CartLine = { id: string; name: string; price: number; qty: number; stock: number; discount: number };
+
+// السعر بعد التخفيض بالنسبة المئوية
+function netPrice(l: CartLine) {
+  const d = Math.min(Math.max(l.discount || 0, 0), 100);
+  return Math.round(l.price * (1 - d / 100) * 100) / 100;
+}
 type ProductRow = { id: string; name: string; barcode: string | null; sale_price: number; category_id: string | null; stock: number };
 
 function POS() {
@@ -38,6 +44,7 @@ function POS() {
   const [customer, setCustomer] = useState("");
   const [method, setMethod] = useState<"cash" | "bankak">("cash");
   const [paid, setPaid] = useState("");
+  const [paidTouched, setPaidTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -83,8 +90,15 @@ function POS() {
     );
   }, [products, search, category]);
 
-  const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const total = cart.reduce((s, l) => s + netPrice(l) * l.qty, 0);
+  const discountAmount = subtotal - total;
   const units = cart.reduce((s, l) => s + l.qty, 0);
+
+  // المبلغ المدفوع = مبلغ البيع تلقائياً ما لم يعدّله الموظف
+  useEffect(() => {
+    if (!paidTouched) setPaid(total ? String(total) : "");
+  }, [total, paidTouched]);
 
   function addToCart(p: ProductRow, qty = 1) {
     if (p.stock <= 0) {
@@ -94,13 +108,19 @@ function POS() {
     setCart((prev) => {
       const found = prev.find((l) => l.id === p.id);
       const nextQty = (found?.qty ?? 0) + qty;
+      const base = { id: p.id, name: p.name, price: p.sale_price, stock: p.stock, discount: 0 };
       if (nextQty > p.stock) {
         toast.warning(`الكمية المتاحة من ${p.name}: ${p.stock}`);
-        return found ? prev.map((l) => (l.id === p.id ? { ...l, qty: p.stock } : l)) : [...prev, { id: p.id, name: p.name, price: p.sale_price, qty: p.stock, stock: p.stock }];
+        return found ? prev.map((l) => (l.id === p.id ? { ...l, qty: p.stock } : l)) : [...prev, { ...base, qty: p.stock }];
       }
       if (found) return prev.map((l) => (l.id === p.id ? { ...l, qty: nextQty } : l));
-      return [...prev, { id: p.id, name: p.name, price: p.sale_price, qty, stock: p.stock }];
+      return [...prev, { ...base, qty }];
     });
+  }
+
+  function setDiscount(id: string, value: number) {
+    const d = Number.isFinite(value) ? Math.min(Math.max(value, 0), 100) : 0;
+    setCart((prev) => prev.map((l) => (l.id === id ? { ...l, discount: d } : l)));
   }
 
 
@@ -159,9 +179,9 @@ function POS() {
         p_method: method,
         p_items: cart.map((l) => ({
           product_id: l.id,
-          product_name: l.name,
+          product_name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
           quantity: l.qty,
-          unit_price: l.price,
+          unit_price: netPrice(l),
         })),
       });
       if (error) throw error;
@@ -176,7 +196,11 @@ function POS() {
         customer: customer || null,
 
         paymentMethod: method,
-        items: cart.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+        items: cart.map((l) => ({
+          name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
+          qty: l.qty,
+          price: netPrice(l),
+        })),
         total,
         paid: method === "cash" && paid ? Number(paid) : null,
       });
@@ -186,6 +210,7 @@ function POS() {
       setCart([]);
       setCustomer("");
       setPaid("");
+      setPaidTouched(false);
       setSearch("");
       queryClient.invalidateQueries();
       scanRef.current?.focus();
@@ -322,7 +347,38 @@ function POS() {
                       <Plus className="size-3" />
                     </button>
                   </div>
-                  <span className="text-sm font-bold">{formatSDG(l.price * l.qty)}</span>
+                  <div className="text-left">
+                    {l.discount > 0 && (
+                      <span className="ml-2 text-[11px] text-muted-foreground line-through">
+                        {formatSDG(l.price * l.qty)}
+                      </span>
+                    )}
+                    <span className="text-sm font-bold">{formatSDG(netPrice(l) * l.qty)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">تخفيض %</span>
+                  <input
+                    value={l.discount || ""}
+                    onChange={(e) => setDiscount(l.id, Number(e.target.value))}
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="h-7 w-14 rounded-md bg-card text-center text-sm font-bold"
+                  />
+                  <div className="flex gap-1">
+                    {[5, 10, 20].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setDiscount(l.id, l.discount === d ? 0 : d)}
+                        className={`rounded-md px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                          l.discount === d ? "bg-secondary text-secondary-foreground" : "bg-card text-muted-foreground"
+                        }`}
+                      >
+                        {d}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -353,15 +409,40 @@ function POS() {
             <div className="mb-3">
               <Input
                 value={paid}
-                onChange={(e) => setPaid(e.target.value)}
+                onChange={(e) => {
+                  setPaidTouched(true);
+                  setPaid(e.target.value);
+                }}
                 inputMode="numeric"
-                placeholder="المبلغ المدفوع (اختياري)"
+                placeholder="المبلغ المدفوع"
               />
-              {paid && Number(paid) >= total && (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  الباقي للعميل: <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
-                </p>
-              )}
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {paidTouched ? (
+                  Number(paid) >= total ? (
+                    <>
+                      الباقي للعميل:{" "}
+                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
+                    </>
+                  ) : (
+                    <span className="text-destructive">المتبقي على العميل: {formatSDG(total - Number(paid || 0))}</span>
+                  )
+                ) : (
+                  "المبلغ المدفوع = مبلغ البيع تلقائياً"
+                )}
+              </p>
+            </div>
+          )}
+
+          {discountAmount > 0 && (
+            <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+              <span className="text-muted-foreground">قبل التخفيض</span>
+              <span className="line-through text-muted-foreground">{formatSDG(subtotal)}</span>
+            </div>
+          )}
+          {discountAmount > 0 && (
+            <div className="flex items-center justify-between pt-1 text-sm">
+              <span className="text-muted-foreground">قيمة التخفيض</span>
+              <span className="font-bold text-destructive">-{formatSDG(discountAmount)}</span>
             </div>
           )}
 
