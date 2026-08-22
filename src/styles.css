@@ -153,9 +153,7 @@
     margin: 3mm;
   }
 
-  html[data-paper="58"] & {
-    /* placeholder */
-  }
+
 
   body * {
     visibility: hidden;
