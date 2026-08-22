@@ -179,9 +179,9 @@ function POS() {
         p_method: method,
         p_items: cart.map((l) => ({
           product_id: l.id,
-          product_name: l.name,
+          product_name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
           quantity: l.qty,
-          unit_price: l.price,
+          unit_price: netPrice(l),
         })),
       });
       if (error) throw error;
