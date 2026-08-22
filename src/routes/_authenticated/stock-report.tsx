@@ -46,6 +46,26 @@ type Line = {
   missing: boolean;
 };
 
+type MovementItem = {
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  sales: {
+    id: string;
+    created_at: string;
+    cashier_id: string | null;
+    branch_id: string | null;
+    payment_method: string;
+  };
+};
+
+function isoDay(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 function StockReport() {
   const { user } = useSession();
   const { data: me } = useProfile(user?.id);
@@ -56,6 +76,8 @@ function StockReport() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ product_id: "", branch_id: "", quantity: "" });
   const [saving, setSaving] = useState(false);
+  const [from, setFrom] = useState(isoDay(-30));
+  const [to, setTo] = useState(isoDay());
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -79,6 +101,63 @@ function StockReport() {
     queryFn: async () =>
       ((await supabase.from("stock").select("quantity, branch_id, product_id")).data ?? []) as StockRow[],
   });
+
+  const { data: movement } = useQuery({
+    queryKey: ["stock-movement", from, to],
+    queryFn: async () => {
+      const start = new Date(`${from}T00:00:00`).toISOString();
+      const end = new Date(`${to}T23:59:59`).toISOString();
+      const [{ data: items }, { data: profiles }] = await Promise.all([
+        supabase
+          .from("sale_items")
+          .select(
+            "product_id, product_name, quantity, unit_price, sales!inner(id, created_at, cashier_id, branch_id, payment_method)",
+          )
+          .gte("sales.created_at", start)
+          .lte("sales.created_at", end),
+        supabase.from("profiles").select("id, full_name"),
+      ]);
+      return {
+        items: (items ?? []) as unknown as MovementItem[],
+        names: new Map((profiles ?? []).map((p) => [p.id, p.full_name])),
+      };
+    },
+  });
+
+  const soldByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const it of movement?.items ?? []) {
+      if (!it.product_id) continue;
+      if (branch !== "all" && it.sales.branch_id !== branch) continue;
+      map.set(it.product_id, (map.get(it.product_id) ?? 0) + Number(it.quantity));
+    }
+    return map;
+  }, [movement, branch]);
+
+  const movementRows = useMemo(() => {
+    const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
+    const map = new Map<
+      string,
+      { date: string; branch: string; seller: string; invoices: Set<string>; units: number; cash: number; bankak: number }
+    >();
+    for (const it of movement?.items ?? []) {
+      const s = it.sales;
+      if (branch !== "all" && s.branch_id !== branch) continue;
+      const day = s.created_at.slice(0, 10);
+      const seller = movement?.names.get(s.cashier_id ?? "") ?? "—";
+      const key = `${day}|${s.branch_id}|${s.cashier_id}`;
+      const cur =
+        map.get(key) ??
+        { date: day, branch: branchName(s.branch_id), seller, invoices: new Set<string>(), units: 0, cash: 0, bankak: 0 };
+      cur.invoices.add(s.id);
+      cur.units += Number(it.quantity);
+      const value = Number(it.quantity) * Number(it.unit_price);
+      if (s.payment_method === "cash") cur.cash += value;
+      else cur.bankak += value;
+      map.set(key, cur);
+    }
+    return [...map.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
+  }, [movement, branches, branch]);
 
   const lines = useMemo<Line[]>(() => {
     const prods = products ?? [];
@@ -271,6 +350,14 @@ function StockReport() {
             ))}
           </select>
         </div>
+        <div className="space-y-1.5">
+          <Label>من تاريخ</Label>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>إلى تاريخ</Label>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </div>
         <div className="min-w-52 flex-1 space-y-1.5">
           <Label>بحث</Label>
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم المنتج أو الباركود" />
@@ -295,6 +382,50 @@ function StockReport() {
         <Stat label="أصناف غير مضافة للمخزن" value={formatNumber(totals.missing)} />
       </div>
 
+      <div className="surface mb-4 p-4">
+        <h2 className="font-bold">حركة الصرف من المخزن</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          الكميات المباعة حسب التاريخ والحساب الذي باع — من {from} إلى {to}
+        </p>
+        <div className="max-h-[24rem] overflow-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="sticky top-0 bg-card">
+              <tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="p-3 font-medium">التاريخ</th>
+                <th className="p-3 font-medium">الفرع</th>
+                <th className="p-3 font-medium">الحساب الذي باع</th>
+                <th className="p-3 font-medium">الفواتير</th>
+                <th className="p-3 font-medium">القطع المصروفة</th>
+                <th className="p-3 font-medium">نقدي</th>
+                <th className="p-3 font-medium">بنكك</th>
+                <th className="p-3 font-medium">الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movementRows.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    لا توجد حركة في هذه الفترة
+                  </td>
+                </tr>
+              )}
+              {movementRows.map((m, i) => (
+                <tr key={i} className="border-b border-border/60 last:border-0">
+                  <td className="p-3 font-semibold">{formatDate(new Date(`${m.date}T00:00:00`))}</td>
+                  <td className="p-3 text-muted-foreground">{m.branch}</td>
+                  <td className="p-3">{m.seller}</td>
+                  <td className="p-3">{formatNumber(m.invoices.size)}</td>
+                  <td className="p-3 font-bold">{formatNumber(m.units)}</td>
+                  <td className="p-3 text-muted-foreground">{formatSDG(m.cash)}</td>
+                  <td className="p-3 text-muted-foreground">{formatSDG(m.bankak)}</td>
+                  <td className="p-3 font-bold text-gold">{formatSDG(m.cash + m.bankak)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="surface p-4">
         <h2 className="mb-3 font-bold">تفاصيل الجرد</h2>
         <div className="max-h-[32rem] overflow-auto">
@@ -305,6 +436,7 @@ function StockReport() {
                 <th className="p-3 font-medium">التصنيف</th>
                 <th className="p-3 font-medium">الفرع</th>
                 <th className="p-3 font-medium">الكمية</th>
+                <th className="p-3 font-medium">المباع بالفترة</th>
                 <th className="p-3 font-medium">التكلفة</th>
                 <th className="p-3 font-medium">قيمة التكلفة</th>
                 <th className="p-3 font-medium">قيمة البيع</th>
@@ -314,14 +446,14 @@ function StockReport() {
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     جارٍ التحميل...
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     لا توجد بيانات
                   </td>
                 </tr>
@@ -351,6 +483,7 @@ function StockReport() {
                       {formatNumber(r.quantity)}
                     </span>
                   </td>
+                  <td className="p-3 text-muted-foreground">{formatNumber(soldByProduct.get(r.product.id) ?? 0)}</td>
                   <td className="p-3 text-muted-foreground">{formatSDG(Number(r.product.cost_price))}</td>
                   <td className="p-3">{formatSDG(r.quantity * Number(r.product.cost_price))}</td>
                   <td className="p-3 font-bold text-gold">{formatSDG(r.quantity * Number(r.product.sale_price))}</td>
