@@ -373,6 +373,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_sale: {
+        Args: {
+          p_branch: string
+          p_customer: string
+          p_items: Json
+          p_method: Database["public"]["Enums"]["payment_method"]
+        }
+        Returns: {
+          created_at: string
+          invoice_no: number
+          sale_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
