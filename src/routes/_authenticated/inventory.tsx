@@ -250,6 +250,7 @@ function Inventory() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           ) : null
         }
       />
