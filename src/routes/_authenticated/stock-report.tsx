@@ -382,6 +382,50 @@ function StockReport() {
         <Stat label="أصناف غير مضافة للمخزن" value={formatNumber(totals.missing)} />
       </div>
 
+      <div className="surface mb-4 p-4">
+        <h2 className="font-bold">حركة الصرف من المخزن</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          الكميات المباعة حسب التاريخ والحساب الذي باع — من {from} إلى {to}
+        </p>
+        <div className="max-h-[24rem] overflow-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="sticky top-0 bg-card">
+              <tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="p-3 font-medium">التاريخ</th>
+                <th className="p-3 font-medium">الفرع</th>
+                <th className="p-3 font-medium">الحساب الذي باع</th>
+                <th className="p-3 font-medium">الفواتير</th>
+                <th className="p-3 font-medium">القطع المصروفة</th>
+                <th className="p-3 font-medium">نقدي</th>
+                <th className="p-3 font-medium">بنكك</th>
+                <th className="p-3 font-medium">الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movementRows.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    لا توجد حركة في هذه الفترة
+                  </td>
+                </tr>
+              )}
+              {movementRows.map((m, i) => (
+                <tr key={i} className="border-b border-border/60 last:border-0">
+                  <td className="p-3 font-semibold">{formatDate(new Date(`${m.date}T00:00:00`))}</td>
+                  <td className="p-3 text-muted-foreground">{m.branch}</td>
+                  <td className="p-3">{m.seller}</td>
+                  <td className="p-3">{formatNumber(m.invoices.size)}</td>
+                  <td className="p-3 font-bold">{formatNumber(m.units)}</td>
+                  <td className="p-3 text-muted-foreground">{formatSDG(m.cash)}</td>
+                  <td className="p-3 text-muted-foreground">{formatSDG(m.bankak)}</td>
+                  <td className="p-3 font-bold text-gold">{formatSDG(m.cash + m.bankak)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="surface p-4">
         <h2 className="mb-3 font-bold">تفاصيل الجرد</h2>
         <div className="max-h-[32rem] overflow-auto">
