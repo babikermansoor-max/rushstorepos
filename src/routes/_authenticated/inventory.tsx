@@ -36,6 +36,8 @@ function Inventory() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
+  const [catName, setCatName] = useState("");
   const [form, setForm] = useState({
     name: "",
     barcode: "",
@@ -104,6 +106,22 @@ function Inventory() {
     }
   }
 
+  async function addCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const name = catName.trim();
+    if (!name) return;
+    const { data, error } = await supabase.from("categories").insert({ name }).select("id").single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("تمت إضافة الصنف");
+    setCatName("");
+    setCatOpen(false);
+    await queryClient.invalidateQueries({ queryKey: ["categories"] });
+    setForm((f) => ({ ...f, category_id: data.id }));
+  }
+
   async function updateStock(productId: string, branchName: string, quantity: number) {
     const branch = (branches ?? []).find((b) => b.name === branchName);
     if (!branch) return;
@@ -124,6 +142,28 @@ function Inventory() {
         subtitle="المنتجات والكميات في الفروع"
         action={
           me?.isAdmin ? (
+            <div className="flex gap-2">
+            <Dialog open={catOpen} onOpenChange={setCatOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="size-4" /> صنف جديد
+                </Button>
+              </DialogTrigger>
+              <DialogContent dir="rtl">
+                <DialogHeader>
+                  <DialogTitle>إضافة صنف</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addCategory} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>اسم الصنف</Label>
+                    <Input value={catName} onChange={(e) => setCatName(e.target.value)} required />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    حفظ الصنف
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -210,6 +250,7 @@ function Inventory() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           ) : null
         }
       />
