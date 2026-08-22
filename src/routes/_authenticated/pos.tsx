@@ -347,7 +347,38 @@ function POS() {
                       <Plus className="size-3" />
                     </button>
                   </div>
-                  <span className="text-sm font-bold">{formatSDG(l.price * l.qty)}</span>
+                  <div className="text-left">
+                    {l.discount > 0 && (
+                      <span className="ml-2 text-[11px] text-muted-foreground line-through">
+                        {formatSDG(l.price * l.qty)}
+                      </span>
+                    )}
+                    <span className="text-sm font-bold">{formatSDG(netPrice(l) * l.qty)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">تخفيض %</span>
+                  <input
+                    value={l.discount || ""}
+                    onChange={(e) => setDiscount(l.id, Number(e.target.value))}
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="h-7 w-14 rounded-md bg-card text-center text-sm font-bold"
+                  />
+                  <div className="flex gap-1">
+                    {[5, 10, 20].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setDiscount(l.id, l.discount === d ? 0 : d)}
+                        className={`rounded-md px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                          l.discount === d ? "bg-secondary text-secondary-foreground" : "bg-card text-muted-foreground"
+                        }`}
+                      >
+                        {d}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
