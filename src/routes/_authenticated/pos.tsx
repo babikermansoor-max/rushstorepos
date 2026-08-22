@@ -44,6 +44,7 @@ function POS() {
   const [customer, setCustomer] = useState("");
   const [method, setMethod] = useState<"cash" | "bankak">("cash");
   const [paid, setPaid] = useState("");
+  const [paidTouched, setPaidTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
