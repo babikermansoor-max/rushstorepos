@@ -35,7 +35,7 @@ function UsersPage() {
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
-    queryFn: async () => (await supabase.from("branches").select("id, name, address").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("branches").select("id, name, is_main").order("name")).data ?? [],
   });
 
   const { data: staff } = useQuery({
@@ -187,7 +187,7 @@ function UsersPage() {
             {(branches ?? []).map((b) => (
               <li key={b.id} className="rounded-lg bg-muted px-3 py-2">
                 <p className="font-semibold">{b.name}</p>
-                {b.address && <p className="text-xs text-muted-foreground">{b.address}</p>}
+                {b.is_main && <p className="text-xs text-muted-foreground">الفرع الرئيسي</p>}
               </li>
             ))}
           </ul>

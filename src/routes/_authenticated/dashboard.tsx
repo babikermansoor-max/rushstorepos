@@ -58,7 +58,7 @@ function Dashboard() {
     { label: "متوسط الفاتورة", value: formatSDG(data?.avg ?? 0), icon: Activity },
   ];
 
-  const totalPay = (data?.byMethod.cash ?? 0) + (data?.byMethod.bankak ?? 0);
+  const totalPay = (data?.byMethod["cash"] ?? 0) + (data?.byMethod["bankak"] ?? 0);
 
   return (
     <div>

@@ -37,7 +37,7 @@ function Reports() {
       const [{ data: sales }, { data: items }] = await Promise.all([
         supabase
           .from("sales")
-          .select("id, invoice_number, total, payment_method, created_at, branches(name)")
+          .select("id, invoice_no, total, payment_method, created_at, branches(name)")
           .gte("created_at", start)
           .lte("created_at", end)
           .order("created_at", { ascending: false }),
@@ -119,7 +119,7 @@ function Reports() {
                 {sales.map((s) => (
                   <tr key={s.id} className="border-b border-border/60 last:border-0">
                     <td className="p-3 font-semibold" dir="ltr">
-                      {s.invoice_number}
+                      #{s.invoice_no}
                     </td>
                     <td className="p-3 text-muted-foreground">
                       {(s.branches as { name: string } | null)?.name ?? "—"}
