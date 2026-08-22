@@ -196,7 +196,11 @@ function POS() {
         customer: customer || null,
 
         paymentMethod: method,
-        items: cart.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+        items: cart.map((l) => ({
+          name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
+          qty: l.qty,
+          price: netPrice(l),
+        })),
         total,
         paid: method === "cash" && paid ? Number(paid) : null,
       });
@@ -206,6 +210,7 @@ function POS() {
       setCart([]);
       setCustomer("");
       setPaid("");
+      setPaidTouched(false);
       setSearch("");
       queryClient.invalidateQueries();
       scanRef.current?.focus();
