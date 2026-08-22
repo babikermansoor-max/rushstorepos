@@ -409,15 +409,40 @@ function POS() {
             <div className="mb-3">
               <Input
                 value={paid}
-                onChange={(e) => setPaid(e.target.value)}
+                onChange={(e) => {
+                  setPaidTouched(true);
+                  setPaid(e.target.value);
+                }}
                 inputMode="numeric"
-                placeholder="المبلغ المدفوع (اختياري)"
+                placeholder="المبلغ المدفوع"
               />
-              {paid && Number(paid) >= total && (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  الباقي للعميل: <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
-                </p>
-              )}
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {paidTouched ? (
+                  Number(paid) >= total ? (
+                    <>
+                      الباقي للعميل:{" "}
+                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
+                    </>
+                  ) : (
+                    <span className="text-destructive">المتبقي على العميل: {formatSDG(total - Number(paid || 0))}</span>
+                  )
+                ) : (
+                  "المبلغ المدفوع = مبلغ البيع تلقائياً"
+                )}
+              </p>
+            </div>
+          )}
+
+          {discountAmount > 0 && (
+            <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
+              <span className="text-muted-foreground">قبل التخفيض</span>
+              <span className="line-through text-muted-foreground">{formatSDG(subtotal)}</span>
+            </div>
+          )}
+          {discountAmount > 0 && (
+            <div className="flex items-center justify-between pt-1 text-sm">
+              <span className="text-muted-foreground">قيمة التخفيض</span>
+              <span className="font-bold text-destructive">-{formatSDG(discountAmount)}</span>
             </div>
           )}
 
