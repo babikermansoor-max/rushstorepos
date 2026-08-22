@@ -123,44 +123,50 @@ function POS() {
     scanRef.current?.focus();
   }
 
+  function clampQty(l: CartLine, qty: number) {
+    if (l.stock > 0 && qty > l.stock) {
+      toast.warning(`الكمية المتاحة من ${l.name}: ${l.stock}`);
+      return l.stock;
+    }
+    return qty;
+  }
+
   function setQty(id: string, delta: number) {
     setCart((prev) =>
-      prev.flatMap((l) => (l.id === id ? (l.qty + delta <= 0 ? [] : [{ ...l, qty: l.qty + delta }]) : [l])),
+      prev.flatMap((l) =>
+        l.id === id ? (l.qty + delta <= 0 ? [] : [{ ...l, qty: clampQty(l, l.qty + delta) }]) : [l],
+      ),
     );
   }
 
   function setQtyExact(id: string, value: number) {
     if (!Number.isFinite(value) || value <= 0) return;
-    setCart((prev) => prev.map((l) => (l.id === id ? { ...l, qty: Math.floor(value) } : l)));
+    setCart((prev) => prev.map((l) => (l.id === id ? { ...l, qty: clampQty(l, Math.floor(value)) } : l)));
   }
 
   async function checkout() {
     if (!cart.length || !user) return;
+    const short = cart.find((l) => l.qty > l.stock);
+    if (short) {
+      toast.error(`الكمية غير كافية للمنتج ${short.name} (المتاح: ${short.stock})`);
+      return;
+    }
     setBusy(true);
     try {
-      const { data: sale, error } = await supabase
-        .from("sales")
-        .insert({
-          branch_id: branchId,
-          cashier_id: user.id,
-          customer_name: customer || null,
-          total,
-          payment_method: method,
-        })
-        .select("id, invoice_no, created_at")
-        .single();
-      if (error) throw error;
-
-      const { error: itemsError } = await supabase.from("sale_items").insert(
-        cart.map((l) => ({
-          sale_id: sale.id,
+      const { data, error } = await supabase.rpc("create_sale", {
+        p_branch: branchId,
+        p_customer: customer || "",
+        p_method: method,
+        p_items: cart.map((l) => ({
           product_id: l.id,
           product_name: l.name,
           quantity: l.qty,
           unit_price: l.price,
         })),
-      );
-      if (itemsError) throw itemsError;
+      });
+      if (error) throw error;
+      const sale = (data as unknown as { sale_id: string; invoice_no: number; created_at: string }[])[0];
+      if (!sale) throw new Error("تعذّر إنشاء الفاتورة");
 
       setReceipt({
         invoiceNo: sale.invoice_no,
@@ -168,6 +174,7 @@ function POS() {
         branch: (me?.profile as { branches?: { name: string } } | undefined)?.branches?.name ?? null,
         cashier: me?.profile?.full_name || user.email || null,
         customer: customer || null,
+
         paymentMethod: method,
         items: cart.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
         total,
