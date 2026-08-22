@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Printer, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatSDG, PAYMENT_LABELS } from "@/lib/format";
@@ -15,15 +16,48 @@ export type ReceiptData = {
   paid?: number | null;
 };
 
+const PAPER_KEY = "rush_paper_width";
+
+function applyPaper(paper: "58" | "80") {
+  document.documentElement.setAttribute("data-paper", paper);
+  let el = document.getElementById("receipt-page-style") as HTMLStyleElement | null;
+  if (!el) {
+    el = document.createElement("style");
+    el.id = "receipt-page-style";
+    document.head.appendChild(el);
+  }
+  el.textContent = `@media print { @page { size: ${paper}mm auto; margin: 3mm; } }`;
+}
+
 export function ReceiptDialog({
   data,
   open,
   onOpenChange,
+  autoPrint = true,
 }: {
   data: ReceiptData | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  autoPrint?: boolean;
 }) {
+  const [paper, setPaper] = useState<"58" | "80">("80");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(PAPER_KEY);
+    if (saved === "58" || saved === "80") setPaper(saved);
+  }, []);
+
+  useEffect(() => {
+    applyPaper(paper);
+    localStorage.setItem(PAPER_KEY, paper);
+  }, [paper]);
+
+  useEffect(() => {
+    if (!open || !data || !autoPrint) return;
+    const t = window.setTimeout(() => window.print(), 400);
+    return () => window.clearTimeout(t);
+  }, [open, data, autoPrint]);
+
   if (!data) return null;
   const change = data.paid != null ? data.paid - data.total : null;
 
@@ -108,6 +142,22 @@ export function ReceiptDialog({
           </div>
 
           <p className="mt-3 text-center text-[11px] text-muted-foreground">شكراً لتسوقكم معنا</p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <span>مقاس الورق:</span>
+          {(["58", "80"] as const).map((w) => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setPaper(w)}
+              className={`rounded-md border px-2 py-1 ${
+                paper === w ? "border-gold text-gold" : "border-border"
+              }`}
+            >
+              {w} مم
+            </button>
+          ))}
         </div>
 
         <div className="flex gap-2">
