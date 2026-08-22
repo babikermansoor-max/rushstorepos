@@ -142,6 +142,28 @@ function Inventory() {
         subtitle="المنتجات والكميات في الفروع"
         action={
           me?.isAdmin ? (
+            <div className="flex gap-2">
+            <Dialog open={catOpen} onOpenChange={setCatOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Plus className="size-4" /> صنف جديد
+                </Button>
+              </DialogTrigger>
+              <DialogContent dir="rtl">
+                <DialogHeader>
+                  <DialogTitle>إضافة صنف</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addCategory} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>اسم الصنف</Label>
+                    <Input value={catName} onChange={(e) => setCatName(e.target.value)} required />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    حفظ الصنف
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button>
