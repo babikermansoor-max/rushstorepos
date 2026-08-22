@@ -436,6 +436,7 @@ function StockReport() {
                 <th className="p-3 font-medium">التصنيف</th>
                 <th className="p-3 font-medium">الفرع</th>
                 <th className="p-3 font-medium">الكمية</th>
+                <th className="p-3 font-medium">المباع بالفترة</th>
                 <th className="p-3 font-medium">التكلفة</th>
                 <th className="p-3 font-medium">قيمة التكلفة</th>
                 <th className="p-3 font-medium">قيمة البيع</th>
