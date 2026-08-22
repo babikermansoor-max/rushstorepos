@@ -18,6 +18,7 @@ import { Route as AuthenticatedPosRouteImport } from './routes/_authenticated/po
 import { Route as AuthenticatedRepairsRouteImport } from './routes/_authenticated/repairs'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedReturnsRouteImport } from './routes/_authenticated/returns'
+import { Route as AuthenticatedStockReportRouteImport } from './routes/_authenticated/stock-report'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 
 const IndexRoute = IndexRouteImport.update({
@@ -64,6 +65,12 @@ const AuthenticatedReturnsRoute = AuthenticatedReturnsRouteImport.update({
   path: '/returns',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStockReportRoute =
+  AuthenticatedStockReportRouteImport.update({
+    id: '/stock-report',
+    path: '/stock-report',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/repairs': typeof AuthenticatedRepairsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/returns': typeof AuthenticatedReturnsRoute
+  '/stock-report': typeof AuthenticatedStockReportRoute
   '/users': typeof AuthenticatedUsersRoute
 }
 export interface FileRoutesByTo {
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
   '/repairs': typeof AuthenticatedRepairsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/returns': typeof AuthenticatedReturnsRoute
+  '/stock-report': typeof AuthenticatedStockReportRoute
   '/users': typeof AuthenticatedUsersRoute
 }
 export interface FileRoutesById {
@@ -103,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/repairs': typeof AuthenticatedRepairsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/returns': typeof AuthenticatedReturnsRoute
+  '/_authenticated/stock-report': typeof AuthenticatedStockReportRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
 }
 export interface FileRouteTypes {
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/repairs'
     | '/reports'
     | '/returns'
+    | '/stock-report'
     | '/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/repairs'
     | '/reports'
     | '/returns'
+    | '/stock-report'
     | '/users'
   id:
     | '__root__'
@@ -139,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/repairs'
     | '/_authenticated/reports'
     | '/_authenticated/returns'
+    | '/_authenticated/stock-report'
     | '/_authenticated/users'
   fileRoutesById: FileRoutesById
 }
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReturnsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/stock-report': {
+      id: '/_authenticated/stock-report'
+      path: '/stock-report'
+      fullPath: '/stock-report'
+      preLoaderRoute: typeof AuthenticatedStockReportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/users': {
       id: '/_authenticated/users'
       path: '/users'
@@ -230,6 +250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRepairsRoute: typeof AuthenticatedRepairsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedReturnsRoute: typeof AuthenticatedReturnsRoute
+  AuthenticatedStockReportRoute: typeof AuthenticatedStockReportRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
 }
 
@@ -240,6 +261,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRepairsRoute: AuthenticatedRepairsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedReturnsRoute: AuthenticatedReturnsRoute,
+  AuthenticatedStockReportRoute: AuthenticatedStockReportRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
 }
 
