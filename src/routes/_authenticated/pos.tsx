@@ -190,15 +190,34 @@ function POS() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <div className="surface p-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <form onSubmit={handleScan} className="relative">
+            <ScanLine className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-gold" />
             <Input
+              ref={scanRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="بحث عن منتج أو باركود..."
-              className="pr-9"
+              placeholder="امسح الباركود أو ابحث بالاسم ثم Enter..."
+              className="h-12 pl-9 pr-9 text-base"
+              autoComplete="off"
             />
-          </div>
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  scanRef.current?.focus();
+                }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </form>
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Search className="size-3" />
+            اضغط Enter لإضافة المنتج المطابق مباشرة إلى السلة
+          </p>
+
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button
