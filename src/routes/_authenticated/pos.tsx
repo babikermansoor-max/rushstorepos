@@ -249,8 +249,13 @@ function POS() {
                 className="rounded-xl border border-border bg-card p-4 text-right transition-all hover:border-primary hover:shadow-panel"
               >
                 <p className="font-semibold leading-tight">{p.name}</p>
-                <p className="mt-2 text-lg font-bold text-gold">{formatSDG(Number(p.sale_price))}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                {p.barcode && (
+                  <p className="mt-1 text-[11px] text-muted-foreground" dir="ltr">
+                    {p.barcode}
+                  </p>
+                )}
+                <p className="mt-2 text-lg font-bold text-gold">{formatSDG(p.sale_price)}</p>
+                <p className={`mt-1 text-xs ${p.stock > 0 ? "text-muted-foreground" : "text-destructive"}`}>
                   {p.stock > 0 ? `متوفر: ${p.stock}` : "نفد المخزون"}
                 </p>
               </button>
@@ -264,13 +269,22 @@ function POS() {
         <div className="surface flex h-fit flex-col p-4 lg:sticky lg:top-24">
           <div className="flex items-center gap-2 border-b border-border pb-3">
             <ShoppingCart className="size-4 text-primary" />
-            <h2 className="font-bold">السلة</h2>
-            <span className="mr-auto text-sm text-muted-foreground">{cart.length} صنف</span>
+            <h2 className="font-bold">الفاتورة الحالية</h2>
+            <span className="mr-auto text-sm text-muted-foreground">
+              {cart.length} صنف · {units} قطعة
+            </span>
+            {cart.length > 0 && (
+              <button onClick={() => setCart([])} className="text-xs text-destructive">
+                تفريغ
+              </button>
+            )}
           </div>
 
           <div className="max-h-72 space-y-2 overflow-y-auto py-3">
             {cart.length === 0 && (
-              <p className="py-10 text-center text-sm text-muted-foreground">السلة فارغة</p>
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                امسح الباركود أو اختر منتجاً للبدء
+              </p>
             )}
             {cart.map((l) => (
               <div key={l.id} className="rounded-lg bg-muted/60 p-3">
@@ -285,7 +299,12 @@ function POS() {
                     <button onClick={() => setQty(l.id, -1)} className="grid size-7 place-items-center rounded-md bg-card">
                       <Minus className="size-3" />
                     </button>
-                    <span className="w-6 text-center text-sm font-bold">{l.qty}</span>
+                    <input
+                      value={l.qty}
+                      onChange={(e) => setQtyExact(l.id, Number(e.target.value))}
+                      inputMode="numeric"
+                      className="h-7 w-12 rounded-md bg-card text-center text-sm font-bold"
+                    />
                     <button onClick={() => setQty(l.id, 1)} className="grid size-7 place-items-center rounded-md bg-card">
                       <Plus className="size-3" />
                     </button>
@@ -317,6 +336,22 @@ function POS() {
             ))}
           </div>
 
+          {method === "cash" && (
+            <div className="mb-3">
+              <Input
+                value={paid}
+                onChange={(e) => setPaid(e.target.value)}
+                inputMode="numeric"
+                placeholder="المبلغ المدفوع (اختياري)"
+              />
+              {paid && Number(paid) >= total && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  الباقي للعميل: <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-t border-border py-3">
             <span className="text-sm text-muted-foreground">الإجمالي</span>
             <span className="text-2xl font-extrabold">{formatSDG(total)}</span>
@@ -324,10 +359,13 @@ function POS() {
 
           <Button onClick={checkout} disabled={!cart.length || busy} className="w-full py-6 text-base font-bold">
             <Check className="size-4" />
-            {busy ? "جارٍ الحفظ..." : "إتمام البيع"}
+            {busy ? "جارٍ الحفظ..." : "إتمام البيع وطباعة الفاتورة"}
           </Button>
         </div>
       </div>
+
+      <ReceiptDialog data={receipt} open={receiptOpen} onOpenChange={setReceiptOpen} />
     </div>
   );
+
 }
