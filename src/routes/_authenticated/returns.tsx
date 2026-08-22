@@ -36,6 +36,13 @@ function Returns() {
     queryFn: async () => (await supabase.from("products").select("id, name, sale_price").order("name")).data ?? [],
   });
 
+  const { data: branches } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () =>
+      (await supabase.from("branches").select("id, name, is_main").order("is_main", { ascending: false })).data ?? [],
+  });
+
+
   const { data: rows, isLoading } = useQuery({
     queryKey: ["returns"],
     queryFn: async () =>
@@ -52,15 +59,26 @@ function Returns() {
     e.preventDefault();
     const product = (products ?? []).find((p) => p.id === form.product_id);
     if (!product || !user) return;
+    const qty = Math.floor(Number(form.quantity || 1));
+    if (!Number.isFinite(qty) || qty <= 0) {
+      toast.error("أدخل كمية صحيحة");
+      return;
+    }
+    const branchId = me?.profile?.branch_id ?? (branches ?? [])[0]?.id ?? null;
+    if (!branchId) {
+      toast.error("لا يوجد فرع محدد لإرجاع الكمية إليه");
+      return;
+    }
     const { error } = await supabase.from("returns").insert({
       product_id: product.id,
       product_name: product.name,
-      branch_id: me?.profile?.branch_id ?? null,
-      quantity: Number(form.quantity || 1),
-      amount: Number(form.amount || Number(product.sale_price) * Number(form.quantity || 1)),
+      branch_id: branchId,
+      quantity: qty,
+      amount: Number(form.amount || Number(product.sale_price) * qty),
       reason: form.reason || null,
       created_by: user.id,
     });
+
     if (error) {
       toast.error(error.message);
       return;

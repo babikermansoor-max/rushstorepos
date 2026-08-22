@@ -77,24 +77,31 @@ function Inventory() {
   async function addProduct(e: React.FormEvent) {
     e.preventDefault();
     try {
+      const cost = Number(form.cost_price || 0);
+      const price = Number(form.sale_price || 0);
+      if (price <= 0) throw new Error("أدخل سعر بيع صحيح");
+      if (price < cost) throw new Error("سعر البيع أقل من سعر الشراء");
       const { data: product, error } = await supabase
         .from("products")
         .insert({
-          name: form.name,
-          barcode: form.barcode || null,
+          name: form.name.trim(),
+          barcode: form.barcode.trim() || null,
           category_id: form.category_id || null,
-          cost_price: Number(form.cost_price || 0),
-          sale_price: Number(form.sale_price || 0),
+          cost_price: cost,
+          sale_price: price,
         })
         .select("id")
         .single();
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
+      }
 
       const branch = form.branch_id || me?.profile?.branch_id;
-      if (branch && Number(form.quantity) > 0) {
+      const qty = Math.floor(Number(form.quantity || 0));
+      if (branch && qty > 0) {
         const { error: stockError } = await supabase
           .from("stock")
-          .insert({ product_id: product.id, branch_id: branch, quantity: Number(form.quantity) });
+          .upsert({ product_id: product.id, branch_id: branch, quantity: qty });
         if (stockError) throw stockError;
       }
       toast.success("تمت إضافة المنتج");
@@ -105,6 +112,7 @@ function Inventory() {
       toast.error(err instanceof Error ? err.message : "تعذّرت الإضافة");
     }
   }
+
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
