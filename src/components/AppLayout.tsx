@@ -8,6 +8,7 @@ import {
   Package,
   Wrench,
   BarChart3,
+  ClipboardList,
   Users,
   LogOut,
   Store,
