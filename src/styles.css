@@ -146,3 +146,24 @@
 @utility text-gold {
   color: var(--color-primary);
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #receipt-print,
+  #receipt-print * {
+    visibility: visible;
+  }
+
+  #receipt-print {
+    position: fixed;
+    inset: 0 auto auto 0;
+    width: 80mm;
+    border: 0;
+    padding: 0;
+    color: #000;
+    background: #fff;
+  }
+}
