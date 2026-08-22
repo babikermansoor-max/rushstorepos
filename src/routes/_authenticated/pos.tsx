@@ -154,7 +154,7 @@ function POS() {
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc("create_sale", {
-        p_branch: branchId,
+        p_branch: branchId as unknown as string,
         p_customer: customer || "",
         p_method: method,
         p_items: cart.map((l) => ({
