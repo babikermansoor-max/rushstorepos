@@ -106,6 +106,22 @@ function Inventory() {
     }
   }
 
+  async function addCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const name = catName.trim();
+    if (!name) return;
+    const { data, error } = await supabase.from("categories").insert({ name }).select("id").single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("تمت إضافة الصنف");
+    setCatName("");
+    setCatOpen(false);
+    await queryClient.invalidateQueries({ queryKey: ["categories"] });
+    setForm((f) => ({ ...f, category_id: data.id }));
+  }
+
   async function updateStock(productId: string, branchName: string, quantity: number) {
     const branch = (branches ?? []).find((b) => b.name === branchName);
     if (!branch) return;
