@@ -90,8 +90,15 @@ function POS() {
     );
   }, [products, search, category]);
 
-  const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const total = cart.reduce((s, l) => s + netPrice(l) * l.qty, 0);
+  const discountAmount = subtotal - total;
   const units = cart.reduce((s, l) => s + l.qty, 0);
+
+  // المبلغ المدفوع = مبلغ البيع تلقائياً ما لم يعدّله الموظف
+  useEffect(() => {
+    if (!paidTouched) setPaid(total ? String(total) : "");
+  }, [total, paidTouched]);
 
   function addToCart(p: ProductRow, qty = 1) {
     if (p.stock <= 0) {
@@ -101,13 +108,19 @@ function POS() {
     setCart((prev) => {
       const found = prev.find((l) => l.id === p.id);
       const nextQty = (found?.qty ?? 0) + qty;
+      const base = { id: p.id, name: p.name, price: p.sale_price, stock: p.stock, discount: 0 };
       if (nextQty > p.stock) {
         toast.warning(`الكمية المتاحة من ${p.name}: ${p.stock}`);
-        return found ? prev.map((l) => (l.id === p.id ? { ...l, qty: p.stock } : l)) : [...prev, { id: p.id, name: p.name, price: p.sale_price, qty: p.stock, stock: p.stock }];
+        return found ? prev.map((l) => (l.id === p.id ? { ...l, qty: p.stock } : l)) : [...prev, { ...base, qty: p.stock }];
       }
       if (found) return prev.map((l) => (l.id === p.id ? { ...l, qty: nextQty } : l));
-      return [...prev, { id: p.id, name: p.name, price: p.sale_price, qty, stock: p.stock }];
+      return [...prev, { ...base, qty }];
     });
+  }
+
+  function setDiscount(id: string, value: number) {
+    const d = Number.isFinite(value) ? Math.min(Math.max(value, 0), 100) : 0;
+    setCart((prev) => prev.map((l) => (l.id === id ? { ...l, discount: d } : l)));
   }
 
 
