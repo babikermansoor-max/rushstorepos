@@ -148,6 +148,15 @@
 }
 
 @media print {
+  @page {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+
+  html[data-paper="58"] & {
+    /* placeholder */
+  }
+
   body * {
     visibility: hidden;
   }
@@ -155,15 +164,29 @@
   #receipt-print,
   #receipt-print * {
     visibility: visible;
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #999 !important;
+    font-family: "Cairo", system-ui, sans-serif;
   }
 
   #receipt-print {
     position: fixed;
     inset: 0 auto auto 0;
-    width: 80mm;
+    width: 74mm;
     border: 0;
     padding: 0;
     color: #000;
     background: #fff;
+    font-size: 12px;
+    line-height: 1.35;
   }
 }
+
+@media print {
+  html[data-paper="58"] #receipt-print {
+    width: 52mm;
+    font-size: 11px;
+  }
+}
+
