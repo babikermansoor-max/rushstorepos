@@ -46,6 +46,26 @@ type Line = {
   missing: boolean;
 };
 
+type MovementItem = {
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  sales: {
+    id: string;
+    created_at: string;
+    cashier_id: string | null;
+    branch_id: string | null;
+    payment_method: string;
+  };
+};
+
+function isoDay(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 function StockReport() {
   const { user } = useSession();
   const { data: me } = useProfile(user?.id);
