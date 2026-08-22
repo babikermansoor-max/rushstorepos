@@ -36,6 +36,8 @@ function Inventory() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
+  const [catName, setCatName] = useState("");
   const [form, setForm] = useState({
     name: "",
     barcode: "",
