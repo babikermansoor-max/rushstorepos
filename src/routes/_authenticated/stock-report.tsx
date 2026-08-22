@@ -56,6 +56,8 @@ function StockReport() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ product_id: "", branch_id: "", quantity: "" });
   const [saving, setSaving] = useState(false);
+  const [from, setFrom] = useState(isoDay(-30));
+  const [to, setTo] = useState(isoDay());
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
