@@ -23,7 +23,13 @@ export const Route = createFileRoute("/_authenticated/pos")({
   component: POS,
 });
 
-type CartLine = { id: string; name: string; price: number; qty: number; stock: number };
+type CartLine = { id: string; name: string; price: number; qty: number; stock: number; discount: number };
+
+// السعر بعد التخفيض بالنسبة المئوية
+function netPrice(l: CartLine) {
+  const d = Math.min(Math.max(l.discount || 0, 0), 100);
+  return Math.round(l.price * (1 - d / 100) * 100) / 100;
+}
 type ProductRow = { id: string; name: string; barcode: string | null; sale_price: number; category_id: string | null; stock: number };
 
 function POS() {
