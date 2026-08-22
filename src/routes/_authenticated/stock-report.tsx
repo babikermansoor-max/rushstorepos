@@ -483,6 +483,7 @@ function StockReport() {
                       {formatNumber(r.quantity)}
                     </span>
                   </td>
+                  <td className="p-3 text-muted-foreground">{formatNumber(soldByProduct.get(r.product.id) ?? 0)}</td>
                   <td className="p-3 text-muted-foreground">{formatSDG(Number(r.product.cost_price))}</td>
                   <td className="p-3">{formatSDG(r.quantity * Number(r.product.cost_price))}</td>
                   <td className="p-3 font-bold text-gold">{formatSDG(r.quantity * Number(r.product.sale_price))}</td>
