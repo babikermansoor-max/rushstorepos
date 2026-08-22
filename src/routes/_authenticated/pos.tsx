@@ -87,16 +87,22 @@ function POS() {
   const units = cart.reduce((s, l) => s + l.qty, 0);
 
   function addToCart(p: ProductRow, qty = 1) {
+    if (p.stock <= 0) {
+      toast.error(`${p.name}: نفد المخزون`);
+      return;
+    }
     setCart((prev) => {
       const found = prev.find((l) => l.id === p.id);
       const nextQty = (found?.qty ?? 0) + qty;
-      if (p.stock > 0 && nextQty > p.stock) {
+      if (nextQty > p.stock) {
         toast.warning(`الكمية المتاحة من ${p.name}: ${p.stock}`);
+        return found ? prev.map((l) => (l.id === p.id ? { ...l, qty: p.stock } : l)) : [...prev, { id: p.id, name: p.name, price: p.sale_price, qty: p.stock, stock: p.stock }];
       }
       if (found) return prev.map((l) => (l.id === p.id ? { ...l, qty: nextQty } : l));
       return [...prev, { id: p.id, name: p.name, price: p.sale_price, qty, stock: p.stock }];
     });
   }
+
 
   // مسح الباركود / بحث سريع: Enter يضيف المطابق مباشرة
   function handleScan(e: React.FormEvent) {
