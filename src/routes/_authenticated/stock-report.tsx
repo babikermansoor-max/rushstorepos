@@ -82,6 +82,63 @@ function StockReport() {
       ((await supabase.from("stock").select("quantity, branch_id, product_id")).data ?? []) as StockRow[],
   });
 
+  const { data: movement } = useQuery({
+    queryKey: ["stock-movement", from, to],
+    queryFn: async () => {
+      const start = new Date(`${from}T00:00:00`).toISOString();
+      const end = new Date(`${to}T23:59:59`).toISOString();
+      const [{ data: items }, { data: profiles }] = await Promise.all([
+        supabase
+          .from("sale_items")
+          .select(
+            "product_id, product_name, quantity, unit_price, sales!inner(id, created_at, cashier_id, branch_id, payment_method)",
+          )
+          .gte("sales.created_at", start)
+          .lte("sales.created_at", end),
+        supabase.from("profiles").select("id, full_name"),
+      ]);
+      return {
+        items: (items ?? []) as unknown as MovementItem[],
+        names: new Map((profiles ?? []).map((p) => [p.id, p.full_name])),
+      };
+    },
+  });
+
+  const soldByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const it of movement?.items ?? []) {
+      if (!it.product_id) continue;
+      if (branch !== "all" && it.sales.branch_id !== branch) continue;
+      map.set(it.product_id, (map.get(it.product_id) ?? 0) + Number(it.quantity));
+    }
+    return map;
+  }, [movement, branch]);
+
+  const movementRows = useMemo(() => {
+    const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
+    const map = new Map<
+      string,
+      { date: string; branch: string; seller: string; invoices: Set<string>; units: number; cash: number; bankak: number }
+    >();
+    for (const it of movement?.items ?? []) {
+      const s = it.sales;
+      if (branch !== "all" && s.branch_id !== branch) continue;
+      const day = s.created_at.slice(0, 10);
+      const seller = movement?.names.get(s.cashier_id ?? "") ?? "—";
+      const key = `${day}|${s.branch_id}|${s.cashier_id}`;
+      const cur =
+        map.get(key) ??
+        { date: day, branch: branchName(s.branch_id), seller, invoices: new Set<string>(), units: 0, cash: 0, bankak: 0 };
+      cur.invoices.add(s.id);
+      cur.units += Number(it.quantity);
+      const value = Number(it.quantity) * Number(it.unit_price);
+      if (s.payment_method === "cash") cur.cash += value;
+      else cur.bankak += value;
+      map.set(key, cur);
+    }
+    return [...map.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
+  }, [movement, branches, branch]);
+
   const lines = useMemo<Line[]>(() => {
     const prods = products ?? [];
     const stk = stock ?? [];
