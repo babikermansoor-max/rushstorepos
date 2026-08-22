@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, ScanLine, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
+import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 import { formatSDG } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +15,16 @@ export const Route = createFileRoute("/_authenticated/pos")({
   head: () => ({
     meta: [
       { title: "نقطة البيع — Rush Store" },
-      { name: "description", content: "شاشة البيع السريع: بحث المنتجات، سلة، ودفع نقدي أو بنكك." },
+      { name: "description", content: "شاشة البيع السريع: مسح الباركود، بحث فوري، سلة، فاتورة رقمية قابلة للطباعة." },
       { property: "og:title", content: "نقطة البيع — Rush Store" },
-      { property: "og:description", content: "شاشة البيع السريع للمتجر بالعربية." },
+      { property: "og:description", content: "بيع سريع بالباركود مع فاتورة رقمية محفوظة في قاعدة البيانات." },
     ],
   }),
   component: POS,
 });
 
-type CartLine = { id: string; name: string; price: number; qty: number };
+type CartLine = { id: string; name: string; price: number; qty: number; stock: number };
+type ProductRow = { id: string; name: string; barcode: string | null; sale_price: number; category_id: string | null; stock: number };
 
 function POS() {
   const { user } = useSession();
@@ -35,7 +37,15 @@ function POS() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customer, setCustomer] = useState("");
   const [method, setMethod] = useState<"cash" | "bankak">("cash");
+  const [paid, setPaid] = useState("");
   const [busy, setBusy] = useState(false);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const scanRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    scanRef.current?.focus();
+  }, []);
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -44,14 +54,18 @@ function POS() {
 
   const { data: products } = useQuery({
     queryKey: ["pos-products", branchId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ProductRow[]> => {
       const { data } = await supabase
         .from("products")
         .select("id, name, barcode, sale_price, category_id, stock(quantity, branch_id)")
         .eq("is_active", true)
         .order("name");
       return (data ?? []).map((p) => ({
-        ...p,
+        id: p.id,
+        name: p.name,
+        barcode: p.barcode,
+        sale_price: Number(p.sale_price),
+        category_id: p.category_id,
         stock:
           (p.stock as { quantity: number; branch_id: string }[] | null)?.find(
             (s) => s.branch_id === branchId,
@@ -65,24 +79,53 @@ function POS() {
     return (products ?? []).filter(
       (p) =>
         (category === "all" || p.category_id === category) &&
-        (!q || p.name.toLowerCase().includes(q) || (p.barcode ?? "").includes(q)),
+        (!q || p.name.toLowerCase().includes(q) || (p.barcode ?? "").toLowerCase().includes(q)),
     );
   }, [products, search, category]);
 
   const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const units = cart.reduce((s, l) => s + l.qty, 0);
 
-  function addToCart(p: { id: string; name: string; sale_price: number }) {
+  function addToCart(p: ProductRow, qty = 1) {
     setCart((prev) => {
       const found = prev.find((l) => l.id === p.id);
-      if (found) return prev.map((l) => (l.id === p.id ? { ...l, qty: l.qty + 1 } : l));
-      return [...prev, { id: p.id, name: p.name, price: Number(p.sale_price), qty: 1 }];
+      const nextQty = (found?.qty ?? 0) + qty;
+      if (p.stock > 0 && nextQty > p.stock) {
+        toast.warning(`الكمية المتاحة من ${p.name}: ${p.stock}`);
+      }
+      if (found) return prev.map((l) => (l.id === p.id ? { ...l, qty: nextQty } : l));
+      return [...prev, { id: p.id, name: p.name, price: p.sale_price, qty, stock: p.stock }];
     });
+  }
+
+  // مسح الباركود / بحث سريع: Enter يضيف المطابق مباشرة
+  function handleScan(e: React.FormEvent) {
+    e.preventDefault();
+    const q = search.trim().toLowerCase();
+    if (!q) return;
+    const list = products ?? [];
+    const match =
+      list.find((p) => (p.barcode ?? "").toLowerCase() === q) ??
+      (filtered.length === 1 ? filtered[0] : undefined) ??
+      list.find((p) => p.name.toLowerCase() === q);
+    if (!match) {
+      toast.error("لا يوجد منتج مطابق");
+      return;
+    }
+    addToCart(match);
+    setSearch("");
+    scanRef.current?.focus();
   }
 
   function setQty(id: string, delta: number) {
     setCart((prev) =>
       prev.flatMap((l) => (l.id === id ? (l.qty + delta <= 0 ? [] : [{ ...l, qty: l.qty + delta }]) : [l])),
     );
+  }
+
+  function setQtyExact(id: string, value: number) {
+    if (!Number.isFinite(value) || value <= 0) return;
+    setCart((prev) => prev.map((l) => (l.id === id ? { ...l, qty: Math.floor(value) } : l)));
   }
 
   async function checkout() {
@@ -98,7 +141,7 @@ function POS() {
           total,
           payment_method: method,
         })
-        .select("id, invoice_no")
+        .select("id, invoice_no, created_at")
         .single();
       if (error) throw error;
 
@@ -113,16 +156,33 @@ function POS() {
       );
       if (itemsError) throw itemsError;
 
+      setReceipt({
+        invoiceNo: sale.invoice_no,
+        createdAt: sale.created_at,
+        branch: (me?.profile as { branches?: { name: string } } | undefined)?.branches?.name ?? null,
+        cashier: me?.profile?.full_name || user.email || null,
+        customer: customer || null,
+        paymentMethod: method,
+        items: cart.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+        total,
+        paid: method === "cash" && paid ? Number(paid) : null,
+      });
+      setReceiptOpen(true);
+
       toast.success(`تم إتمام البيع — فاتورة رقم ${sale.invoice_no}`);
       setCart([]);
       setCustomer("");
+      setPaid("");
+      setSearch("");
       queryClient.invalidateQueries();
+      scanRef.current?.focus();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "تعذّر إتمام البيع");
     } finally {
       setBusy(false);
     }
   }
+
 
   return (
     <div>
