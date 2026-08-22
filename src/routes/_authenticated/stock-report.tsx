@@ -350,6 +350,14 @@ function StockReport() {
             ))}
           </select>
         </div>
+        <div className="space-y-1.5">
+          <Label>من تاريخ</Label>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>إلى تاريخ</Label>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </div>
         <div className="min-w-52 flex-1 space-y-1.5">
           <Label>بحث</Label>
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم المنتج أو الباركود" />
