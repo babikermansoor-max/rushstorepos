@@ -43,7 +43,7 @@ function Reports() {
           .order("created_at", { ascending: false }),
         supabase
           .from("sale_items")
-          .select("product_name, quantity, total, sales!inner(created_at)")
+          .select("product_name, quantity, unit_price, sales!inner(created_at)")
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
       ]);
@@ -60,7 +60,7 @@ function Reports() {
   for (const it of data?.items ?? []) {
     const cur = topMap.get(it.product_name) ?? { qty: 0, total: 0 };
     cur.qty += it.quantity;
-    cur.total += Number(it.total);
+    cur.total += Number(it.unit_price) * it.quantity;
     topMap.set(it.product_name, cur);
   }
   const top = [...topMap.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
