@@ -36,6 +36,13 @@ function Returns() {
     queryFn: async () => (await supabase.from("products").select("id, name, sale_price").order("name")).data ?? [],
   });
 
+  const { data: branches } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () =>
+      (await supabase.from("branches").select("id, name, is_main").order("is_main", { ascending: false })).data ?? [],
+  });
+
+
   const { data: rows, isLoading } = useQuery({
     queryKey: ["returns"],
     queryFn: async () =>
