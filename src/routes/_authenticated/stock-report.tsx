@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Printer, Tags, Trash2 } from "lucide-react";
+import { Plus, Printer, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppLayout";
@@ -79,6 +79,16 @@ function StockReport() {
   const [onlyLow, setOnlyLow] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [catName, setCatName] = useState("");
+  const [productOpen, setProductOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    barcode: "",
+    category_id: "",
+    cost_price: "",
+    sale_price: "",
+    quantity: "",
+    branch_id: "",
+  });
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [from, setFrom] = useState(isoDay(-30));
@@ -258,6 +268,45 @@ function StockReport() {
     return [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }, [movement, branches, branch]);
 
+  async function addProduct(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      const cost = Number(form.cost_price || 0);
+      const price = Number(form.sale_price || 0);
+      if (price <= 0) throw new Error("أدخل سعر بيع صحيح");
+      if (price < cost) throw new Error("سعر البيع أقل من سعر الشراء");
+      const { data: product, error } = await supabase
+        .from("products")
+        .insert({
+          name: form.name.trim(),
+          barcode: form.barcode.trim() || null,
+          category_id: form.category_id || null,
+          cost_price: cost,
+          sale_price: price,
+        })
+        .select("id")
+        .single();
+      if (error) {
+        throw new Error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
+      }
+
+      const branch = form.branch_id || me?.profile?.branch_id;
+      const qty = Math.floor(Number(form.quantity || 0));
+      if (branch && qty > 0) {
+        const { error: stockError } = await supabase
+          .from("stock")
+          .upsert({ product_id: product.id, branch_id: branch, quantity: qty });
+        if (stockError) throw stockError;
+      }
+      toast.success("تمت إضافة المنتج");
+      setProductOpen(false);
+      setForm({ name: "", barcode: "", category_id: "", cost_price: "", sale_price: "", quantity: "", branch_id: "" });
+      queryClient.invalidateQueries();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّرت الإضافة");
+    }
+  }
+
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
     const name = catName.trim();
@@ -306,51 +355,140 @@ function StockReport() {
               طباعة
             </Button>
             {me?.isAdmin && (
-              <Dialog open={catOpen} onOpenChange={setCatOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Tags className="size-4" />
-                    إدارة الأصناف
-                  </Button>
-                </DialogTrigger>
-                <DialogContent dir="rtl">
-                  <DialogHeader>
-                    <DialogTitle>إدارة الأصناف</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={addCategory} className="flex gap-2">
-                    <Input
-                      value={catName}
-                      onChange={(e) => setCatName(e.target.value)}
-                      placeholder="اسم صنف جديد"
-                      required
-                    />
-                    <Button type="submit" disabled={saving}>
-                      إضافة
+              <>
+                <Dialog open={productOpen} onOpenChange={setProductOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="size-4" />
+                      منتج جديد
                     </Button>
-                  </form>
-                  <div className="max-h-72 space-y-1 overflow-auto">
-                    {(categories ?? []).length === 0 && (
-                      <p className="py-6 text-center text-sm text-muted-foreground">لا توجد أصناف</p>
-                    )}
-                    {(categories ?? []).map((c) => (
-                      <div
-                        key={c.id}
-                        className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
-                      >
-                        <span className="font-medium">{c.name}</span>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => renameCategory(c.id, c.name)}>
-                            تعديل
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => deleteCategory(c.id)}>
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
+                  </DialogTrigger>
+                  <DialogContent dir="rtl">
+                    <DialogHeader>
+                      <DialogTitle>إضافة منتج</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={addProduct} className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label>اسم المنتج</Label>
+                        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label>الباركود</Label>
+                          <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>الصنف</Label>
+                          <select
+                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            value={form.category_id}
+                            onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                          >
+                            <option value="">بدون</option>
+                            {(categories ?? []).map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label>سعر الشراء</Label>
+                          <Input
+                            type="number"
+                            value={form.cost_price}
+                            onChange={(e) => setForm({ ...form, cost_price: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>سعر البيع</Label>
+                          <Input
+                            type="number"
+                            value={form.sale_price}
+                            onChange={(e) => setForm({ ...form, sale_price: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label>الكمية الابتدائية</Label>
+                          <Input
+                            type="number"
+                            value={form.quantity}
+                            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>الفرع</Label>
+                          <select
+                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            value={form.branch_id}
+                            onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
+                          >
+                            <option value="">فرعي الحالي</option>
+                            {(branches ?? []).map((b) => (
+                              <option key={b.id} value={b.id}>
+                                {b.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full">
+                        حفظ المنتج
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={catOpen} onOpenChange={setCatOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Tags className="size-4" />
+                      إدارة الأصناف
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent dir="rtl">
+                    <DialogHeader>
+                      <DialogTitle>إدارة الأصناف</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={addCategory} className="flex gap-2">
+                      <Input
+                        value={catName}
+                        onChange={(e) => setCatName(e.target.value)}
+                        placeholder="اسم صنف جديد"
+                        required
+                      />
+                      <Button type="submit" disabled={saving}>
+                        إضافة
+                      </Button>
+                    </form>
+                    <div className="max-h-72 space-y-1 overflow-auto">
+                      {(categories ?? []).length === 0 && (
+                        <p className="py-6 text-center text-sm text-muted-foreground">لا توجد أصناف</p>
+                      )}
+                      {(categories ?? []).map((c) => (
+                        <div
+                          key={c.id}
+                          className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium">{c.name}</span>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" onClick={() => renameCategory(c.id, c.name)}>
+                              تعديل
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteCategory(c.id)}>
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
             )}
           </div>
         }
