@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, KeyRound, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession, type AppRole } from "@/hooks/useSession";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { setStaffPassword } from "@/lib/staff.functions";
 
 export const Route = createFileRoute("/_authenticated/users")({
   head: () => ({
@@ -32,6 +34,9 @@ function UsersPage() {
   const queryClient = useQueryClient();
   const [branchName, setBranchName] = useState("");
   const [open, setOpen] = useState(false);
+  const [pwUser, setPwUser] = useState<{ id: string; name: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const changePassword = useServerFn(setStaffPassword);
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -42,7 +47,10 @@ function UsersPage() {
     queryKey: ["staff"],
     queryFn: async () => {
       const [{ data: profiles }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, branch_id, branches(name)").order("full_name"),
+        supabase
+          .from("profiles")
+          .select("id, full_name, username, phone, is_approved, branch_id, branches(name)")
+          .order("full_name"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
       return (profiles ?? []).map((p) => {
@@ -81,6 +89,28 @@ function UsersPage() {
     else {
       toast.success("تم تحديث الصلاحية");
       queryClient.invalidateQueries({ queryKey: ["staff"] });
+    }
+  }
+
+  async function setApproved(userId: string, approved: boolean) {
+    const { error } = await supabase.from("profiles").update({ is_approved: approved }).eq("id", userId);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(approved ? "تم اعتماد الحساب" : "تم إيقاف الحساب");
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    }
+  }
+
+  async function submitPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pwUser) return;
+    try {
+      await changePassword({ data: { userId: pwUser.id, password: newPassword } });
+      toast.success("تم تغيير كلمة المرور");
+      setPwUser(null);
+      setNewPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر تغيير كلمة المرور");
     }
   }
 
