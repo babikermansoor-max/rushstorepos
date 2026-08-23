@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
@@ -9,14 +9,6 @@ import { PageHeader } from "@/components/AppLayout";
 import { formatSDG } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
@@ -35,18 +27,7 @@ function Inventory() {
   const { data: me } = useProfile(user?.id);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [catOpen, setCatOpen] = useState(false);
-  const [catName, setCatName] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    barcode: "",
-    category_id: "",
-    cost_price: "",
-    sale_price: "",
-    quantity: "",
-    branch_id: "",
-  });
+
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
