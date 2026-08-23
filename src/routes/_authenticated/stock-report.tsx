@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Printer, PackagePlus } from "lucide-react";
+import { Printer, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppLayout";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 
 export const Route = createFileRoute("/_authenticated/stock-report")({
   head: () => ({
@@ -57,6 +58,9 @@ type MovementItem = {
     cashier_id: string | null;
     branch_id: string | null;
     payment_method: string;
+    invoice_no: number;
+    customer_name: string | null;
+    total: number;
   };
 };
 
@@ -73,15 +77,21 @@ function StockReport() {
   const [branch, setBranch] = useState("all");
   const [search, setSearch] = useState("");
   const [onlyLow, setOnlyLow] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ product_id: "", branch_id: "", quantity: "" });
+  const [catOpen, setCatOpen] = useState(false);
+  const [catName, setCatName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
     queryFn: async () => (await supabase.from("branches").select("id, name").order("name")).data ?? [],
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => (await supabase.from("categories").select("id, name").order("name")).data ?? [],
   });
 
   const { data: products } = useQuery({
@@ -111,7 +121,7 @@ function StockReport() {
         supabase
           .from("sale_items")
           .select(
-            "product_id, product_name, quantity, unit_price, sales!inner(id, created_at, cashier_id, branch_id, payment_method)",
+            "product_id, product_name, quantity, unit_price, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
           )
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
@@ -222,38 +232,65 @@ function StockReport() {
     { qty: 0, cost: 0, sale: 0, low: 0, out: 0, missing: 0 },
   );
 
-  function openAdd(productId?: string, branchId?: string | null) {
-    setForm({
-      product_id: productId ?? "",
-      branch_id: branchId ?? (branch !== "all" ? branch : (me?.profile?.branch_id ?? "")),
-      quantity: "",
-    });
-    setOpen(true);
+  const invoices = useMemo(() => {
+    const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
+    const map = new Map<string, ReceiptData & { date: string; branchId: string | null }>();
+    for (const it of movement?.items ?? []) {
+      const s = it.sales;
+      if (branch !== "all" && s.branch_id !== branch) continue;
+      const cur =
+        map.get(s.id) ??
+        {
+          invoiceNo: s.invoice_no,
+          createdAt: s.created_at,
+          branch: branchName(s.branch_id),
+          cashier: movement?.names.get(s.cashier_id ?? "") ?? "—",
+          customer: s.customer_name,
+          paymentMethod: s.payment_method,
+          items: [] as { name: string; qty: number; price: number }[],
+          total: Number(s.total),
+          date: s.created_at.slice(0, 10),
+          branchId: s.branch_id,
+        };
+      cur.items.push({ name: it.product_name, qty: Number(it.quantity), price: Number(it.unit_price) });
+      map.set(s.id, cur);
+    }
+    return [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }, [movement, branches, branch]);
+
+  async function addCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const name = catName.trim();
+    if (!name) return;
+    setSaving(true);
+    const { error } = await supabase.from("categories").insert({ name });
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("تمت إضافة الصنف");
+      setCatName("");
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    }
   }
 
-  async function addStock(e: React.FormEvent) {
-    e.preventDefault();
-    const qty = Number(form.quantity);
-    if (!form.product_id || !form.branch_id || !qty) {
-      toast.error("اختر المنتج والفرع والكمية");
-      return;
-    }
-    setSaving(true);
-    try {
-      const current = (stock ?? []).find((s) => s.product_id === form.product_id && s.branch_id === form.branch_id);
-      const next = (current ? Number(current.quantity) : 0) + qty;
-      const { error } = await supabase
-        .from("stock")
-        .upsert({ product_id: form.product_id, branch_id: form.branch_id, quantity: next });
-      if (error) throw error;
-      toast.success(`تمت إضافة ${formatNumber(qty)} قطعة — الرصيد الآن ${formatNumber(next)}`);
-      setOpen(false);
-      setForm({ product_id: "", branch_id: "", quantity: "" });
+  async function renameCategory(id: string, current: string) {
+    const v = window.prompt("اسم الصنف", current);
+    if (!v || v.trim() === current) return;
+    const { error } = await supabase.from("categories").update({ name: v.trim() }).eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("تم التعديل");
       queryClient.invalidateQueries();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "تعذّرت الإضافة");
-    } finally {
-      setSaving(false);
+    }
+  }
+
+  async function deleteCategory(id: string) {
+    if (!window.confirm("حذف هذا الصنف؟")) return;
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("تم الحذف");
+      queryClient.invalidateQueries();
     }
   }
 
@@ -268,68 +305,53 @@ function StockReport() {
               <Printer className="size-4" />
               طباعة
             </Button>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2" onClick={() => openAdd()}>
-                  <PackagePlus className="size-4" />
-                  إضافة مخزون
-                </Button>
-              </DialogTrigger>
-              <DialogContent dir="rtl">
-                <DialogHeader>
-                  <DialogTitle>إضافة كمية للمخزن</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={addStock} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label>المنتج</Label>
-                    <select
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={form.product_id}
-                      onChange={(e) => setForm({ ...form, product_id: e.target.value })}
-                      required
-                    >
-                      <option value="">اختر المنتج</option>
-                      {(products ?? []).map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>الفرع</Label>
-                    <select
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={form.branch_id}
-                      onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
-                      required
-                    >
-                      <option value="">اختر الفرع</option>
-                      {(branches ?? []).map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>الكمية المضافة</Label>
+            {me?.isAdmin && (
+              <Dialog open={catOpen} onOpenChange={setCatOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Tags className="size-4" />
+                    إدارة الأصناف
+                  </Button>
+                </DialogTrigger>
+                <DialogContent dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle>إدارة الأصناف</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={addCategory} className="flex gap-2">
                     <Input
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={form.quantity}
-                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      value={catName}
+                      onChange={(e) => setCatName(e.target.value)}
+                      placeholder="اسم صنف جديد"
                       required
                     />
-                    <p className="text-xs text-muted-foreground">تُضاف إلى الرصيد الحالي للمنتج في الفرع المحدد.</p>
+                    <Button type="submit" disabled={saving}>
+                      إضافة
+                    </Button>
+                  </form>
+                  <div className="max-h-72 space-y-1 overflow-auto">
+                    {(categories ?? []).length === 0 && (
+                      <p className="py-6 text-center text-sm text-muted-foreground">لا توجد أصناف</p>
+                    )}
+                    {(categories ?? []).map((c) => (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium">{c.name}</span>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" onClick={() => renameCategory(c.id, c.name)}>
+                            تعديل
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => deleteCategory(c.id)}>
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <Button type="submit" className="w-full" disabled={saving}>
-                    {saving ? "جارٍ الحفظ..." : "إضافة"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         }
       />
@@ -426,6 +448,48 @@ function StockReport() {
         </div>
       </div>
 
+      <div className="surface mb-4 p-4">
+        <h2 className="font-bold">الفواتير</h2>
+        <p className="mb-3 text-sm text-muted-foreground">اضغط على الفاتورة لعرضها وطباعتها</p>
+        <div className="max-h-[24rem] overflow-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="sticky top-0 bg-card">
+              <tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="p-3 font-medium">رقم الفاتورة</th>
+                <th className="p-3 font-medium">التاريخ</th>
+                <th className="p-3 font-medium">الفرع</th>
+                <th className="p-3 font-medium">الحساب الذي باع</th>
+                <th className="p-3 font-medium">الأصناف</th>
+                <th className="p-3 font-medium">الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    لا توجد فواتير في هذه الفترة
+                  </td>
+                </tr>
+              )}
+              {invoices.map((inv) => (
+                <tr
+                  key={String(inv.invoiceNo)}
+                  onClick={() => setReceipt(inv)}
+                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                >
+                  <td className="p-3 font-bold">#{inv.invoiceNo}</td>
+                  <td className="p-3 text-muted-foreground">{formatDate(new Date(inv.createdAt))}</td>
+                  <td className="p-3 text-muted-foreground">{inv.branch}</td>
+                  <td className="p-3">{inv.cashier}</td>
+                  <td className="p-3">{formatNumber(inv.items.length)}</td>
+                  <td className="p-3 font-bold text-gold">{formatSDG(inv.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="surface p-4">
         <h2 className="mb-3 font-bold">تفاصيل الجرد</h2>
         <div className="max-h-[32rem] overflow-auto">
@@ -440,20 +504,19 @@ function StockReport() {
                 <th className="p-3 font-medium">التكلفة</th>
                 <th className="p-3 font-medium">قيمة التكلفة</th>
                 <th className="p-3 font-medium">قيمة البيع</th>
-                <th className="no-print p-3 font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     جارٍ التحميل...
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     لا توجد بيانات
                   </td>
                 </tr>
@@ -487,17 +550,14 @@ function StockReport() {
                   <td className="p-3 text-muted-foreground">{formatSDG(Number(r.product.cost_price))}</td>
                   <td className="p-3">{formatSDG(r.quantity * Number(r.product.cost_price))}</td>
                   <td className="p-3 font-bold text-gold">{formatSDG(r.quantity * Number(r.product.sale_price))}</td>
-                  <td className="no-print p-3">
-                    <Button size="sm" variant="outline" onClick={() => openAdd(r.product.id, r.branchId)}>
-                      إضافة كمية
-                    </Button>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      <ReceiptDialog data={receipt} open={!!receipt} onOpenChange={(v) => !v && setReceipt(null)} autoPrint={false} />
     </div>
   );
 }
