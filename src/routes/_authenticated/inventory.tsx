@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
 import { formatSDG } from "@/lib/format";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/inventory")({
@@ -28,15 +27,11 @@ function Inventory() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("categories").select("id, name").order("name")).data ?? [],
-  });
   const { data: branches } = useQuery({
     queryKey: ["branches"],
     queryFn: async () => (await supabase.from("branches").select("id, name").order("name")).data ?? [],
   });
+
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () =>
@@ -54,7 +49,6 @@ function Inventory() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.barcode ?? "").includes(search),
   );
-
 
   async function updateStock(productId: string, branchName: string, quantity: number) {
     const branch = (branches ?? []).find((b) => b.name === branchName);
@@ -75,7 +69,6 @@ function Inventory() {
         title="المخزون"
         subtitle="المنتجات والكميات في الفروع"
       />
-
 
       <div className="surface p-4">
         <div className="relative mb-4">
