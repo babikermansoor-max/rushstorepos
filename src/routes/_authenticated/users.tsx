@@ -258,6 +258,31 @@ function UsersPage() {
           </ul>
         </div>
       </div>
+
+      <Dialog open={!!pwUser} onOpenChange={(o) => !o && setPwUser(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تغيير كلمة مرور {pwUser?.name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitPassword} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>كلمة المرور الجديدة</Label>
+              <Input
+                type="text"
+                dir="ltr"
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              حفظ
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
