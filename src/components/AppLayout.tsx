@@ -109,6 +109,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="grid size-9 place-items-center rounded-full bg-secondary text-sm font-bold text-primary">
               {name.charAt(0).toUpperCase()}
             </div>
+            <button
+              onClick={signOut}
+              aria-label="تسجيل الخروج"
+              className="grid size-9 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
         </header>
 
