@@ -38,6 +38,19 @@ function UsersPage() {
   const [pwUser, setPwUser] = useState<{ id: string; name: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const changePassword = useServerFn(setStaffPassword);
+  const createAccount = useServerFn(createStaffAccount);
+  const [accOpen, setAccOpen] = useState(false);
+  const [accBusy, setAccBusy] = useState(false);
+  const emptyAcc = {
+    username: "",
+    password: "",
+    fullName: "",
+    phone: "",
+    role: "owner" as AppRole,
+    branchId: "",
+  };
+  const [acc, setAcc] = useState(emptyAcc);
+
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
