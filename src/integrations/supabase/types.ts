@@ -373,6 +373,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_branch: {
+        Args: { _branch: string; _user_id: string }
+        Returns: boolean
+      }
       create_sale: {
         Args: {
           p_branch: string
@@ -386,6 +390,7 @@ export type Database = {
           sale_id: string
         }[]
       }
+      current_branch: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
