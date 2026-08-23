@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
@@ -9,14 +9,6 @@ import { PageHeader } from "@/components/AppLayout";
 import { formatSDG } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
@@ -35,18 +27,7 @@ function Inventory() {
   const { data: me } = useProfile(user?.id);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
-  const [catOpen, setCatOpen] = useState(false);
-  const [catName, setCatName] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    barcode: "",
-    category_id: "",
-    cost_price: "",
-    sale_price: "",
-    quantity: "",
-    branch_id: "",
-  });
+
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -148,120 +129,8 @@ function Inventory() {
       <PageHeader
         title="المخزون"
         subtitle="المنتجات والكميات في الفروع"
-        action={
-          me?.isAdmin ? (
-            <div className="flex gap-2">
-            <Dialog open={catOpen} onOpenChange={setCatOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Plus className="size-4" /> صنف جديد
-                </Button>
-              </DialogTrigger>
-              <DialogContent dir="rtl">
-                <DialogHeader>
-                  <DialogTitle>إضافة صنف</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={addCategory} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label>اسم الصنف</Label>
-                    <Input value={catName} onChange={(e) => setCatName(e.target.value)} required />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    حفظ الصنف
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="size-4" /> منتج جديد
-                </Button>
-              </DialogTrigger>
-              <DialogContent dir="rtl">
-                <DialogHeader>
-                  <DialogTitle>إضافة منتج</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={addProduct} className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label>اسم المنتج</Label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>الباركود</Label>
-                      <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>الصنف</Label>
-                      <select
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={form.category_id}
-                        onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                      >
-                        <option value="">بدون</option>
-                        {(categories ?? []).map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>سعر الشراء</Label>
-                      <Input
-                        type="number"
-                        value={form.cost_price}
-                        onChange={(e) => setForm({ ...form, cost_price: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>سعر البيع</Label>
-                      <Input
-                        type="number"
-                        value={form.sale_price}
-                        onChange={(e) => setForm({ ...form, sale_price: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>الكمية الابتدائية</Label>
-                      <Input
-                        type="number"
-                        value={form.quantity}
-                        onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>الفرع</Label>
-                      <select
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={form.branch_id}
-                        onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
-                      >
-                        <option value="">فرعي الحالي</option>
-                        {(branches ?? []).map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full">
-                    حفظ المنتج
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-            </div>
-          ) : null
-        }
       />
+
 
       <div className="surface p-4">
         <div className="relative mb-4">
