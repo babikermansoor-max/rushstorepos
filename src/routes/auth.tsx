@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,10 +33,12 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
+  const signingUp = useRef(false);
 
   useEffect(() => {
+    if (signingUp.current || pending) return;
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
-  }, [loading, session, navigate]);
+  }, [loading, session, navigate, pending]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,7 +58,9 @@ function AuthPage() {
         toast.success("تم تسجيل الدخول");
         navigate({ to: "/dashboard", replace: true });
       } else {
+        signingUp.current = true;
         if (phone.trim().length < 6) {
+          signingUp.current = false;
           toast.error("أدخل رقم هاتف صحيح");
           return;
         }
@@ -76,10 +80,12 @@ function AuthPage() {
           );
         }
         await supabase.auth.signOut();
+        signingUp.current = false;
         setPending(true);
         setPassword("");
       }
     } catch (err) {
+      signingUp.current = false;
       toast.error(err instanceof Error ? err.message : "حدث خطأ");
     } finally {
       setBusy(false);
