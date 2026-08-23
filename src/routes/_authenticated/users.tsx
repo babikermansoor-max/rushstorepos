@@ -163,14 +163,35 @@ function UsersPage() {
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="p-3 font-medium">الاسم</th>
+                <th className="p-3 font-medium">اسم المستخدم</th>
+                <th className="p-3 font-medium">الهاتف</th>
+                <th className="p-3 font-medium">الحالة</th>
                 <th className="p-3 font-medium">الصلاحية</th>
                 <th className="p-3 font-medium">الفرع</th>
+                <th className="p-3 font-medium">كلمة المرور</th>
               </tr>
             </thead>
             <tbody>
               {(staff ?? []).map((s) => (
                 <tr key={s.id} className="border-b border-border/60 last:border-0">
                   <td className="p-3 font-semibold">{s.full_name || "بدون اسم"}</td>
+                  <td className="p-3 text-muted-foreground" dir="ltr">
+                    {s.username ?? "—"}
+                  </td>
+                  <td className="p-3 text-muted-foreground" dir="ltr">
+                    {s.phone ?? "—"}
+                  </td>
+                  <td className="p-3">
+                    {s.is_approved ? (
+                      <Button size="sm" variant="outline" onClick={() => setApproved(s.id, false)}>
+                        <Check className="size-4 text-primary" /> معتمد
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => setApproved(s.id, true)}>
+                        <X className="size-4" /> اعتماد
+                      </Button>
+                    )}
+                  </td>
                   <td className="p-3">
                     <select
                       className="h-9 rounded-md border border-input bg-background px-2 text-sm"
@@ -198,15 +219,29 @@ function UsersPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="p-3">
+                    {me.isOwner ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPwUser({ id: s.id, name: s.full_name || s.username || "" })}
+                      >
+                        <KeyRound className="size-4" /> تغيير
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">للمالك فقط</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {(staff ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={3} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     لا يوجد موظفون
                   </td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>
