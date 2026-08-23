@@ -57,6 +57,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
+        <div className="border-b border-sidebar-border p-3">
+          <div className="mb-2 rounded-lg bg-sidebar-accent/60 px-3 py-2">
+            <p className="truncate text-sm font-semibold">{name}</p>
+            <p className="text-xs text-sidebar-foreground/60">
+              {ROLE_LABELS[data?.role ?? "cashier"]}
+              {branch ? ` · ${branch}` : ""}
+            </p>
+          </div>
+          <button
+            onClick={signOut}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-destructive"
+          >
+            <LogOut className="size-4" />
+            تسجيل الخروج
+          </button>
+        </div>
+
         <nav className="flex-1 space-y-1 px-3 py-4">
           {NAV.filter((n) => !n.admin || data?.isAdmin).map((item) => (
             <Link
@@ -74,22 +91,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="border-t border-sidebar-border p-3">
-          <div className="mb-2 rounded-lg bg-sidebar-accent/60 px-3 py-2">
-            <p className="truncate text-sm font-semibold">{name}</p>
-            <p className="text-xs text-sidebar-foreground/60">
-              {ROLE_LABELS[data?.role ?? "cashier"]}
-              {branch ? ` · ${branch}` : ""}
-            </p>
-          </div>
-          <button
-            onClick={signOut}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-destructive"
-          >
-            <LogOut className="size-4" />
-            تسجيل الخروج
-          </button>
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -108,6 +109,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="grid size-9 place-items-center rounded-full bg-secondary text-sm font-bold text-primary">
               {name.charAt(0).toUpperCase()}
             </div>
+            <button
+              onClick={signOut}
+              aria-label="تسجيل الخروج"
+              className="grid size-9 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
         </header>
 
