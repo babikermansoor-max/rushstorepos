@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
 import { formatSDG } from "@/lib/format";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/inventory")({
@@ -28,15 +27,11 @@ function Inventory() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("categories").select("id, name").order("name")).data ?? [],
-  });
   const { data: branches } = useQuery({
     queryKey: ["branches"],
     queryFn: async () => (await supabase.from("branches").select("id, name").order("name")).data ?? [],
   });
+
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () =>
@@ -54,62 +49,6 @@ function Inventory() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.barcode ?? "").includes(search),
   );
-
-  async function addProduct(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      const cost = Number(form.cost_price || 0);
-      const price = Number(form.sale_price || 0);
-      if (price <= 0) throw new Error("أدخل سعر بيع صحيح");
-      if (price < cost) throw new Error("سعر البيع أقل من سعر الشراء");
-      const { data: product, error } = await supabase
-        .from("products")
-        .insert({
-          name: form.name.trim(),
-          barcode: form.barcode.trim() || null,
-          category_id: form.category_id || null,
-          cost_price: cost,
-          sale_price: price,
-        })
-        .select("id")
-        .single();
-      if (error) {
-        throw new Error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
-      }
-
-      const branch = form.branch_id || me?.profile?.branch_id;
-      const qty = Math.floor(Number(form.quantity || 0));
-      if (branch && qty > 0) {
-        const { error: stockError } = await supabase
-          .from("stock")
-          .upsert({ product_id: product.id, branch_id: branch, quantity: qty });
-        if (stockError) throw stockError;
-      }
-      toast.success("تمت إضافة المنتج");
-      setOpen(false);
-      setForm({ name: "", barcode: "", category_id: "", cost_price: "", sale_price: "", quantity: "", branch_id: "" });
-      queryClient.invalidateQueries();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "تعذّرت الإضافة");
-    }
-  }
-
-
-  async function addCategory(e: React.FormEvent) {
-    e.preventDefault();
-    const name = catName.trim();
-    if (!name) return;
-    const { data, error } = await supabase.from("categories").insert({ name }).select("id").single();
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("تمت إضافة الصنف");
-    setCatName("");
-    setCatOpen(false);
-    await queryClient.invalidateQueries({ queryKey: ["categories"] });
-    setForm((f) => ({ ...f, category_id: data.id }));
-  }
 
   async function updateStock(productId: string, branchName: string, quantity: number) {
     const branch = (branches ?? []).find((b) => b.name === branchName);
@@ -130,7 +69,6 @@ function Inventory() {
         title="المخزون"
         subtitle="المنتجات والكميات في الفروع"
       />
-
 
       <div className="surface p-4">
         <div className="relative mb-4">
