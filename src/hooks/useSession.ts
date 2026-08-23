@@ -32,7 +32,7 @@ export function useProfile(userId?: string) {
       const [{ data: profile }, { data: roles }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, branch_id, branches(id, name)")
+          .select("id, full_name, username, phone, is_approved, branch_id, branches(id, name)")
           .eq("id", userId!)
           .maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId!),
@@ -43,7 +43,13 @@ export function useProfile(userId?: string) {
         : roleList.includes("manager")
           ? "manager"
           : "cashier";
-      return { profile, role, isAdmin: role === "owner" || role === "manager" };
+      return {
+        profile,
+        role,
+        isAdmin: role === "owner" || role === "manager",
+        isOwner: role === "owner",
+        isApproved: profile?.is_approved ?? false,
+      };
     },
   });
 }

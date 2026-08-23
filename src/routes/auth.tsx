@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Store } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useSession } from "@/hooks/useSession";
+import { normalizeUsername, usernameToEmail } from "@/lib/username";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,58 +27,94 @@ function AuthPage() {
   const { session, loading } = useSession();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(false);
+  const signingUp = useRef(false);
 
   useEffect(() => {
+    if (signingUp.current || pending) return;
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
-  }, [loading, session, navigate]);
+  }, [loading, session, navigate, pending]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const handle = normalizeUsername(username);
+    if (handle.length < 3) {
+      toast.error("اسم المستخدم يجب أن يكون 3 أحرف إنجليزية/أرقام على الأقل");
+      return;
+    }
     setBusy(true);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({
+          email: usernameToEmail(handle),
+          password,
+        });
+        if (error) throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة");
         toast.success("تم تسجيل الدخول");
         navigate({ to: "/dashboard", replace: true });
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
+        signingUp.current = true;
+        if (phone.trim().length < 6) {
+          signingUp.current = false;
+          toast.error("أدخل رقم هاتف صحيح");
+          return;
+        }
+        const { error } = await supabase.auth.signUp({
+          email: usernameToEmail(handle),
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: fullName },
+            data: { username: handle, phone: phone.trim(), full_name: fullName.trim() || handle },
           },
         });
-        if (error) throw error;
-        if (data.session) {
-          toast.success("تم إنشاء الحساب");
-          navigate({ to: "/dashboard", replace: true });
-        } else {
-          toast.success("تم إنشاء الحساب — تحقق من بريدك لتأكيد التسجيل");
+        if (error) {
+          throw new Error(
+            error.message.toLowerCase().includes("already")
+              ? "اسم المستخدم مستخدم بالفعل"
+              : error.message,
+          );
         }
+        await supabase.auth.signOut();
+        signingUp.current = false;
+        setPending(true);
+        setPassword("");
       }
     } catch (err) {
+      signingUp.current = false;
       toast.error(err instanceof Error ? err.message : "حدث خطأ");
     } finally {
       setBusy(false);
     }
   }
 
-  async function google() {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("تعذّر الدخول بحساب Google");
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/dashboard", replace: true });
+  if (pending) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-secondary px-4 py-10">
+        <div className="w-full max-w-md rounded-2xl bg-card p-7 text-center shadow-panel">
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-secondary text-primary">
+            <Store className="size-7" />
+          </div>
+          <h1 className="mt-4 text-xl font-bold">تم إرسال طلب التسجيل</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            حسابك بانتظار موافقة المالك. سيتم تفعيله بعد الاعتماد ثم يمكنك تسجيل الدخول باسم المستخدم وكلمة المرور.
+          </p>
+          <Button
+            className="mt-6 w-full"
+            onClick={() => {
+              setPending(false);
+              setMode("login");
+            }}
+          >
+            العودة لتسجيل الدخول
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -90,7 +126,7 @@ function AuthPage() {
           </div>
           <h1 className="mt-4 text-2xl font-bold">Rush Store</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "login" ? "سجّل دخولك لإدارة المتجر" : "أنشئ حساب موظف جديد"}
+            {mode === "login" ? "سجّل دخولك لإدارة المتجر" : "أنشئ حساب موظف جديد — يحتاج موافقة المالك"}
           </p>
         </div>
 
@@ -102,22 +138,39 @@ function AuthPage() {
             </div>
           )}
           <div className="space-y-1.5">
-            <Label htmlFor="email">البريد الإلكتروني</Label>
+            <Label htmlFor="username">اسم المستخدم</Label>
             <Input
-              id="email"
-              type="email"
+              id="username"
               dir="ltr"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              placeholder="ahmed"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="phone">رقم الهاتف</Label>
+              <Input
+                id="phone"
+                dir="ltr"
+                type="tel"
+                inputMode="tel"
+                placeholder="09xxxxxxxx"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="password">كلمة المرور</Label>
             <Input
               id="password"
               type="password"
               dir="ltr"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               value={password}
               minLength={6}
               onChange={(e) => setPassword(e.target.value)}
@@ -125,19 +178,9 @@ function AuthPage() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "جارٍ..." : mode === "login" ? "دخول" : "إنشاء الحساب"}
+            {busy ? "جارٍ..." : mode === "login" ? "دخول" : "إرسال طلب التسجيل"}
           </Button>
         </form>
-
-        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          أو
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button type="button" variant="outline" className="w-full" onClick={google}>
-          المتابعة بحساب Google
-        </Button>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === "login" ? "ليس لديك حساب؟" : "لديك حساب بالفعل؟"}{" "}

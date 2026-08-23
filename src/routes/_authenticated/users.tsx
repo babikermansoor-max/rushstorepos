@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, KeyRound, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession, type AppRole } from "@/hooks/useSession";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { setStaffPassword } from "@/lib/staff.functions";
 
 export const Route = createFileRoute("/_authenticated/users")({
   head: () => ({
@@ -32,6 +34,9 @@ function UsersPage() {
   const queryClient = useQueryClient();
   const [branchName, setBranchName] = useState("");
   const [open, setOpen] = useState(false);
+  const [pwUser, setPwUser] = useState<{ id: string; name: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const changePassword = useServerFn(setStaffPassword);
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -42,7 +47,10 @@ function UsersPage() {
     queryKey: ["staff"],
     queryFn: async () => {
       const [{ data: profiles }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, branch_id, branches(name)").order("full_name"),
+        supabase
+          .from("profiles")
+          .select("id, full_name, username, phone, is_approved, branch_id, branches(name)")
+          .order("full_name"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
       return (profiles ?? []).map((p) => {
@@ -81,6 +89,28 @@ function UsersPage() {
     else {
       toast.success("تم تحديث الصلاحية");
       queryClient.invalidateQueries({ queryKey: ["staff"] });
+    }
+  }
+
+  async function setApproved(userId: string, approved: boolean) {
+    const { error } = await supabase.from("profiles").update({ is_approved: approved }).eq("id", userId);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(approved ? "تم اعتماد الحساب" : "تم إيقاف الحساب");
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    }
+  }
+
+  async function submitPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pwUser) return;
+    try {
+      await changePassword({ data: { userId: pwUser.id, password: newPassword } });
+      toast.success("تم تغيير كلمة المرور");
+      setPwUser(null);
+      setNewPassword("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر تغيير كلمة المرور");
     }
   }
 
@@ -133,14 +163,35 @@ function UsersPage() {
             <thead>
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="p-3 font-medium">الاسم</th>
+                <th className="p-3 font-medium">اسم المستخدم</th>
+                <th className="p-3 font-medium">الهاتف</th>
+                <th className="p-3 font-medium">الحالة</th>
                 <th className="p-3 font-medium">الصلاحية</th>
                 <th className="p-3 font-medium">الفرع</th>
+                <th className="p-3 font-medium">كلمة المرور</th>
               </tr>
             </thead>
             <tbody>
               {(staff ?? []).map((s) => (
                 <tr key={s.id} className="border-b border-border/60 last:border-0">
                   <td className="p-3 font-semibold">{s.full_name || "بدون اسم"}</td>
+                  <td className="p-3 text-muted-foreground" dir="ltr">
+                    {s.username ?? "—"}
+                  </td>
+                  <td className="p-3 text-muted-foreground" dir="ltr">
+                    {s.phone ?? "—"}
+                  </td>
+                  <td className="p-3">
+                    {s.is_approved ? (
+                      <Button size="sm" variant="outline" onClick={() => setApproved(s.id, false)}>
+                        <Check className="size-4 text-primary" /> معتمد
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => setApproved(s.id, true)}>
+                        <X className="size-4" /> اعتماد
+                      </Button>
+                    )}
+                  </td>
                   <td className="p-3">
                     <select
                       className="h-9 rounded-md border border-input bg-background px-2 text-sm"
@@ -168,15 +219,29 @@ function UsersPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="p-3">
+                    {me.isOwner ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPwUser({ id: s.id, name: s.full_name || s.username || "" })}
+                      >
+                        <KeyRound className="size-4" /> تغيير
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">للمالك فقط</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {(staff ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={3} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     لا يوجد موظفون
                   </td>
                 </tr>
               )}
+
             </tbody>
           </table>
         </div>
@@ -193,6 +258,31 @@ function UsersPage() {
           </ul>
         </div>
       </div>
+
+      <Dialog open={!!pwUser} onOpenChange={(o) => !o && setPwUser(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تغيير كلمة مرور {pwUser?.name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={submitPassword} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>كلمة المرور الجديدة</Label>
+              <Input
+                type="text"
+                dir="ltr"
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              حفظ
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
