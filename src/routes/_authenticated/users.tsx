@@ -140,35 +140,148 @@ function UsersPage() {
     }
   }
 
+  async function submitAccount(e: React.FormEvent) {
+    e.preventDefault();
+    setAccBusy(true);
+    try {
+      await createAccount({
+        data: {
+          username: acc.username,
+          password: acc.password,
+          fullName: acc.fullName,
+          phone: acc.phone,
+          role: acc.role,
+          branchId: acc.branchId || null,
+        },
+      });
+      toast.success("تم إنشاء الحساب");
+      setAcc(emptyAcc);
+      setAccOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر إنشاء الحساب");
+    } finally {
+      setAccBusy(false);
+    }
+  }
+
   return (
     <div>
       <PageHeader
         title="الموظفين والفروع"
         subtitle="الصلاحيات وتوزيع الموظفين"
         action={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="size-4" /> فرع جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent dir="rtl">
-              <DialogHeader>
-                <DialogTitle>إضافة فرع</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={addBranch} className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label>اسم الفرع</Label>
-                  <Input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
-                </div>
-                <Button type="submit" className="w-full">
-                  حفظ
+          <div className="flex gap-2">
+            {me.isOwner && (
+              <Dialog open={accOpen} onOpenChange={setAccOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <UserPlus className="size-4" /> حساب مالك
+                  </Button>
+                </DialogTrigger>
+                <DialogContent dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle>إضافة حساب</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={submitAccount} className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label>الاسم الكامل</Label>
+                      <Input
+                        value={acc.fullName}
+                        onChange={(e) => setAcc({ ...acc, fullName: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>اسم المستخدم</Label>
+                      <Input
+                        dir="ltr"
+                        value={acc.username}
+                        onChange={(e) => setAcc({ ...acc, username: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>رقم الهاتف</Label>
+                      <Input
+                        dir="ltr"
+                        value={acc.phone}
+                        onChange={(e) => setAcc({ ...acc, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>كلمة المرور</Label>
+                      <Input
+                        dir="ltr"
+                        minLength={6}
+                        value={acc.password}
+                        onChange={(e) => setAcc({ ...acc, password: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label>الصلاحية</Label>
+                        <select
+                          className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+                          value={acc.role}
+                          onChange={(e) => setAcc({ ...acc, role: e.target.value as AppRole })}
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {ROLE_LABELS[r]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>الفرع</Label>
+                        <select
+                          className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+                          value={acc.branchId}
+                          onChange={(e) => setAcc({ ...acc, branchId: e.target.value })}
+                        >
+                          <option value="">الفرع الافتراضي</option>
+                          {(branches ?? []).map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={accBusy}>
+                      {accBusy ? "جارٍ..." : "إنشاء الحساب"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="size-4" /> فرع جديد
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent dir="rtl">
+                <DialogHeader>
+                  <DialogTitle>إضافة فرع</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addBranch} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>اسم الفرع</Label>
+                    <Input value={branchName} onChange={(e) => setBranchName(e.target.value)} required />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    حفظ
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
+
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="surface overflow-x-auto p-4 lg:col-span-2">
