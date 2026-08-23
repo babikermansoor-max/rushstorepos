@@ -100,18 +100,27 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          is_approved: boolean
+          phone: string | null
+          username: string | null
         }
         Insert: {
           branch_id?: string | null
           created_at?: string
           full_name?: string
           id: string
+          is_approved?: boolean
+          phone?: string | null
+          username?: string | null
         }
         Update: {
           branch_id?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          is_approved?: boolean
+          phone?: string | null
+          username?: string | null
         }
         Relationships: [
           {
@@ -399,6 +408,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "manager" | "cashier"
