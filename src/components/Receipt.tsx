@@ -3,6 +3,7 @@ import { Printer, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatSDG, PAYMENT_LABELS } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import rushLogo from "@/assets/rush-logo.jpg.asset.json";
 
 export type ReceiptData = {
   invoiceNo: number | string;
