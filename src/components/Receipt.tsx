@@ -177,7 +177,7 @@ export function ReceiptDialog({
 
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <span>مقاس الورق:</span>
-          {(["58", "80"] as const).map((w) => (
+          {(["58", "80", "auto"] as const).map((w) => (
             <button
               key={w}
               type="button"
@@ -186,9 +186,10 @@ export function ReceiptDialog({
                 paper === w ? "border-gold text-gold" : "border-border"
               }`}
             >
-              {w} مم
+              {w === "auto" ? "حسب الطابعة" : `${w} مم`}
             </button>
           ))}
+
         </div>
 
         <div className="flex gap-2">
