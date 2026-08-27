@@ -48,13 +48,14 @@ export function ReceiptDialog({
   onOpenChange: (v: boolean) => void;
   autoPrint?: boolean;
 }) {
-  const [paper, setPaper] = useState<"58" | "80">("80");
+  const [paper, setPaper] = useState<Paper>("80");
   const [printLogoReady, setPrintLogoReady] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(PAPER_KEY);
-    if (saved === "58" || saved === "80") setPaper(saved);
+    if (saved === "58" || saved === "80" || saved === "auto") setPaper(saved);
   }, []);
+
 
   useEffect(() => {
     applyPaper(paper);
