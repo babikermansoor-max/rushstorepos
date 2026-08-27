@@ -20,7 +20,9 @@ export type ReceiptData = {
 
 const PAPER_KEY = "rush_paper_width";
 
-function applyPaper(paper: "58" | "80") {
+type Paper = "58" | "80" | "auto";
+
+function applyPaper(paper: Paper) {
   document.documentElement.setAttribute("data-paper", paper);
   let el = document.getElementById("receipt-page-style") as HTMLStyleElement | null;
   if (!el) {
@@ -28,8 +30,12 @@ function applyPaper(paper: "58" | "80") {
     el.id = "receipt-page-style";
     document.head.appendChild(el);
   }
-  el.textContent = `@media print { @page { size: ${paper}mm auto; margin: 0; } html, body { width: ${paper}mm; } }`;
+  el.textContent =
+    paper === "auto"
+      ? `@media print { @page { size: auto; margin: 0; } }`
+      : `@media print { @page { size: ${paper}mm auto; margin: 0; } html, body { width: ${paper}mm; } }`;
 }
+
 
 export function ReceiptDialog({
   data,
