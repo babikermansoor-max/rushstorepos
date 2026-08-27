@@ -28,7 +28,7 @@ function applyPaper(paper: "58" | "80") {
     el.id = "receipt-page-style";
     document.head.appendChild(el);
   }
-  el.textContent = `@media print { @page { size: ${paper}mm auto; margin: 3mm; } }`;
+  el.textContent = `@media print { @page { size: ${paper}mm auto; margin: 0; } html, body { width: ${paper}mm; } }`;
 }
 
 export function ReceiptDialog({
