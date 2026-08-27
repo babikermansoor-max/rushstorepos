@@ -91,6 +91,8 @@ function StockReport() {
   });
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState("");
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
@@ -305,6 +307,31 @@ function StockReport() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "تعذّرت الإضافة");
     }
+  }
+
+  async function saveQuantity(productId: string, branchId: string | null) {
+    const target = branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
+    if (!target) {
+      toast.error("اختر الفرع أولاً");
+      return;
+    }
+    const qty = Math.floor(Number(editQty));
+    if (!Number.isFinite(qty) || qty < 0) {
+      toast.error("أدخل كمية صحيحة");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("stock")
+      .upsert({ product_id: productId, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("تم تحديث الكمية");
+    setEditKey(null);
+    queryClient.invalidateQueries();
   }
 
   async function addCategory(e: React.FormEvent) {
@@ -672,17 +699,59 @@ function StockReport() {
                   <td className="p-3 text-muted-foreground">{r.product.categories?.name ?? "—"}</td>
                   <td className="p-3 text-muted-foreground">{r.branchName}</td>
                   <td className="p-3">
-                    <span
-                      className={
-                        r.quantity <= 0
-                          ? "rounded-md bg-destructive/15 px-2 py-0.5 font-bold text-destructive"
-                          : r.quantity <= 5
-                            ? "rounded-md bg-secondary px-2 py-0.5 font-bold text-primary"
-                            : "font-bold"
-                      }
-                    >
-                      {formatNumber(r.quantity)}
-                    </span>
+                    {editKey === r.key ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min={0}
+                          autoFocus
+                          value={editQty}
+                          onChange={(e) => setEditQty(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveQuantity(r.product.id, r.branchId);
+                            if (e.key === "Escape") setEditKey(null);
+                          }}
+                          className="h-8 w-20"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8"
+                          disabled={saving}
+                          onClick={() => saveQuantity(r.product.id, r.branchId)}
+                        >
+                          حفظ
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditKey(null)}>
+                          إلغاء
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            r.quantity <= 0
+                              ? "rounded-md bg-destructive/15 px-2 py-0.5 font-bold text-destructive"
+                              : r.quantity <= 5
+                                ? "rounded-md bg-secondary px-2 py-0.5 font-bold text-primary"
+                                : "font-bold"
+                          }
+                        >
+                          {formatNumber(r.quantity)}
+                        </span>
+                        {me?.isAdmin && (
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground underline hover:text-gold"
+                            onClick={() => {
+                              setEditKey(r.key);
+                              setEditQty(String(r.quantity));
+                            }}
+                          >
+                            تعديل
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-muted-foreground">{formatNumber(soldByProduct.get(r.product.id) ?? 0)}</td>
                   <td className="p-3 text-muted-foreground">{formatSDG(Number(r.product.cost_price))}</td>
