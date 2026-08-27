@@ -33,7 +33,7 @@ function applyPaper(paper: Paper) {
   el.textContent =
     paper === "auto"
       ? `@media print { @page { size: auto; margin: 0; } }`
-      : `@media print { @page { size: ${paper}mm auto; margin: 0; } html, body { width: ${paper}mm; } }`;
+      : `@media print { @page { size: ${paper}mm auto; margin: 0; } }`;
 }
 
 
