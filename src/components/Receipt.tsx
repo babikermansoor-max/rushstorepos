@@ -142,6 +142,14 @@ export function ReceiptDialog({
           </div>
 
           <p className="mt-3 text-center text-[11px] text-muted-foreground">شكراً لتسوقكم معنا</p>
+
+          <div className="mt-2 flex justify-center">
+            <img
+              src={rushLogo.url}
+              alt="Rush Store"
+              className="h-14 w-auto object-contain"
+            />
+          </div>
         </div>
 
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
