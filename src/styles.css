@@ -156,12 +156,11 @@
 
   html,
   body {
-    width: auto;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
   }
-
 
   body * {
     visibility: hidden;
@@ -181,18 +180,23 @@
     print-color-adjust: exact;
   }
 
+  /* Receipt fills the whole printable width, flowing from the top of the page */
   #receipt-print {
-    position: fixed;
-    inset: 0 auto auto 0;
-    width: 72mm;
-    margin: 0;
-    border: 0;
-    padding: 2mm 2mm 6mm;
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 2mm 3mm 8mm !important;
     color: #000;
     background: #fff;
     font-size: 12.5px;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 1.45;
   }
 
   #receipt-print table {
@@ -208,24 +212,14 @@
   }
 
   html[data-paper="58"] #receipt-print {
-    width: 48mm;
     font-size: 11px;
+    padding: 2mm 2mm 8mm !important;
   }
 
-  /* «حسب الطابعة»: تعبئة كامل عرض الورق المختار في مربع الطباعة */
   html[data-paper="auto"] #receipt-print {
-    position: static;
-    width: 100%;
-    max-width: 100%;
-    padding: 3mm 3mm 8mm;
     font-size: 13px;
+    padding: 3mm 4mm 10mm !important;
   }
-
-  html[data-paper="auto"] #receipt-print .receipt-logo-print {
-    max-width: 45%;
-    max-height: 22mm;
-  }
-
 
   #receipt-print .receipt-logo-screen {
     display: none !important;
@@ -233,15 +227,16 @@
 
   #receipt-print .receipt-logo-print {
     display: block !important;
-    visibility: visible;
-    margin: 2mm auto 0;
-    max-width: 40mm;
+    visibility: visible !important;
+    margin: 3mm auto 0 !important;
+    width: 32mm;
+    max-width: 60%;
     height: auto;
-    max-height: 16mm;
-    filter: grayscale(100%) contrast(200%);
+    filter: grayscale(100%) contrast(160%);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
+
 
 
