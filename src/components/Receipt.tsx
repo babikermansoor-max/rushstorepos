@@ -148,7 +148,12 @@ export function ReceiptDialog({
             <img
               src={rushLogo.url}
               alt="Rush Store"
-              className="h-14 w-auto object-contain"
+              className="receipt-logo-screen h-14 w-auto rounded-md object-contain"
+            />
+            <img
+              src={rushLogoPrint.url}
+              alt="Rush Store"
+              className="receipt-logo-print hidden h-14 w-auto object-contain"
             />
           </div>
         </div>
