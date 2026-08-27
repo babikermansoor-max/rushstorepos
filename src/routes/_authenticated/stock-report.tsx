@@ -91,6 +91,8 @@ function StockReport() {
   });
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState("");
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
