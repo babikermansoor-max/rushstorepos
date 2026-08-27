@@ -156,11 +156,12 @@
 
   html,
   body {
-    width: 80mm;
+    width: auto;
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
   }
+
 
   body * {
     visibility: hidden;
@@ -210,6 +211,21 @@
     width: 48mm;
     font-size: 11px;
   }
+
+  /* «حسب الطابعة»: تعبئة كامل عرض الورق المختار في مربع الطباعة */
+  html[data-paper="auto"] #receipt-print {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    padding: 3mm 3mm 8mm;
+    font-size: 13px;
+  }
+
+  html[data-paper="auto"] #receipt-print .receipt-logo-print {
+    max-width: 45%;
+    max-height: 22mm;
+  }
+
 
   #receipt-print .receipt-logo-screen {
     display: none !important;

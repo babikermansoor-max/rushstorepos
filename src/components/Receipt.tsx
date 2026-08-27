@@ -20,7 +20,9 @@ export type ReceiptData = {
 
 const PAPER_KEY = "rush_paper_width";
 
-function applyPaper(paper: "58" | "80") {
+type Paper = "58" | "80" | "auto";
+
+function applyPaper(paper: Paper) {
   document.documentElement.setAttribute("data-paper", paper);
   let el = document.getElementById("receipt-page-style") as HTMLStyleElement | null;
   if (!el) {
@@ -28,8 +30,12 @@ function applyPaper(paper: "58" | "80") {
     el.id = "receipt-page-style";
     document.head.appendChild(el);
   }
-  el.textContent = `@media print { @page { size: ${paper}mm auto; margin: 0; } html, body { width: ${paper}mm; } }`;
+  el.textContent =
+    paper === "auto"
+      ? `@media print { @page { size: auto; margin: 0; } }`
+      : `@media print { @page { size: ${paper}mm auto; margin: 0; } html, body { width: ${paper}mm; } }`;
 }
+
 
 export function ReceiptDialog({
   data,
@@ -42,13 +48,14 @@ export function ReceiptDialog({
   onOpenChange: (v: boolean) => void;
   autoPrint?: boolean;
 }) {
-  const [paper, setPaper] = useState<"58" | "80">("80");
+  const [paper, setPaper] = useState<Paper>("80");
   const [printLogoReady, setPrintLogoReady] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(PAPER_KEY);
-    if (saved === "58" || saved === "80") setPaper(saved);
+    if (saved === "58" || saved === "80" || saved === "auto") setPaper(saved);
   }, []);
+
 
   useEffect(() => {
     applyPaper(paper);
@@ -170,7 +177,7 @@ export function ReceiptDialog({
 
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <span>مقاس الورق:</span>
-          {(["58", "80"] as const).map((w) => (
+          {(["58", "80", "auto"] as const).map((w) => (
             <button
               key={w}
               type="button"
@@ -179,9 +186,10 @@ export function ReceiptDialog({
                 paper === w ? "border-gold text-gold" : "border-border"
               }`}
             >
-              {w} مم
+              {w === "auto" ? "حسب الطابعة" : `${w} مم`}
             </button>
           ))}
+
         </div>
 
         <div className="flex gap-2">
