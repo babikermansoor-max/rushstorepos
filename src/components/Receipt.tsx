@@ -43,6 +43,7 @@ export function ReceiptDialog({
   autoPrint?: boolean;
 }) {
   const [paper, setPaper] = useState<"58" | "80">("80");
+  const [printLogoReady, setPrintLogoReady] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(PAPER_KEY);
@@ -54,11 +55,19 @@ export function ReceiptDialog({
     localStorage.setItem(PAPER_KEY, paper);
   }, [paper]);
 
+  // Preload the print logo so the thermal-receipt image is cached before printing.
+  useEffect(() => {
+    const img = new Image();
+    img.src = rushLogoPrint.url;
+    img.onload = () => setPrintLogoReady(true);
+    img.onerror = () => setPrintLogoReady(true);
+  }, []);
+
   useEffect(() => {
     if (!open || !data || !autoPrint) return;
-    const t = window.setTimeout(() => window.print(), 400);
+    const t = window.setTimeout(() => window.print(), printLogoReady ? 350 : 1400);
     return () => window.clearTimeout(t);
-  }, [open, data, autoPrint]);
+  }, [open, data, autoPrint, printLogoReady]);
 
   if (!data) return null;
   const change = data.paid != null ? data.paid - data.total : null;
