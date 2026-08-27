@@ -309,6 +309,31 @@ function StockReport() {
     }
   }
 
+  async function saveQuantity(productId: string, branchId: string | null) {
+    const target = branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
+    if (!target) {
+      toast.error("اختر الفرع أولاً");
+      return;
+    }
+    const qty = Math.floor(Number(editQty));
+    if (!Number.isFinite(qty) || qty < 0) {
+      toast.error("أدخل كمية صحيحة");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("stock")
+      .upsert({ product_id: productId, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("تم تحديث الكمية");
+    setEditKey(null);
+    queryClient.invalidateQueries();
+  }
+
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
     const name = catName.trim();
