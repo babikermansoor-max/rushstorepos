@@ -186,5 +186,15 @@
     width: 52mm;
     font-size: 11px;
   }
+
+  #receipt-print .receipt-logo-screen {
+    display: none !important;
+  }
+
+  #receipt-print .receipt-logo-print {
+    display: block !important;
+    visibility: visible;
+    margin: 0 auto;
+  }
 }
 
