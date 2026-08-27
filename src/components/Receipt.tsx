@@ -3,6 +3,8 @@ import { Printer, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatSDG, PAYMENT_LABELS } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import rushLogo from "@/assets/rush-logo.jpg.asset.json";
+import rushLogoPrint from "@/assets/rush-logo-print.png.asset.json";
 
 export type ReceiptData = {
   invoiceNo: number | string;
@@ -142,6 +144,19 @@ export function ReceiptDialog({
           </div>
 
           <p className="mt-3 text-center text-[11px] text-muted-foreground">شكراً لتسوقكم معنا</p>
+
+          <div className="mt-2 flex justify-center">
+            <img
+              src={rushLogo.url}
+              alt="Rush Store"
+              className="receipt-logo-screen h-14 w-auto rounded-md object-contain"
+            />
+            <img
+              src={rushLogoPrint.url}
+              alt="Rush Store"
+              className="receipt-logo-print hidden h-14 w-auto object-contain"
+            />
+          </div>
         </div>
 
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
