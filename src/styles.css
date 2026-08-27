@@ -195,6 +195,11 @@
     display: block !important;
     visibility: visible;
     margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 16mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 
