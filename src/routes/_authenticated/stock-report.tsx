@@ -751,60 +751,30 @@ function StockReport() {
                   <td className="p-3 text-muted-foreground">{r.product.categories?.name ?? "—"}</td>
                   <td className="p-3 text-muted-foreground">{r.branchName}</td>
                   <td className="p-3">
-                    {editKey === r.key ? (
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min={0}
-                          autoFocus
-                          value={editQty}
-                          onChange={(e) => setEditQty(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveQuantity(r.product.id, r.branchId);
-                            if (e.key === "Escape") setEditKey(null);
-                          }}
-                          className="h-8 w-20"
-                        />
-                        <Button
-                          size="sm"
-                          className="h-8"
-                          disabled={saving}
-                          onClick={() => saveQuantity(r.product.id, r.branchId)}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          r.quantity <= 0
+                            ? "rounded-md bg-destructive/15 px-2 py-0.5 font-bold text-destructive"
+                            : r.quantity <= 5
+                              ? "rounded-md bg-secondary px-2 py-0.5 font-bold text-primary"
+                              : "font-bold"
+                        }
+                      >
+                        {formatNumber(r.quantity)}
+                      </span>
+                      {me?.isAdmin && (
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline hover:text-gold"
+                          onClick={() => openEdit(r)}
                         >
-                          حفظ
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditKey(null)}>
-                          إلغاء
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={
-                            r.quantity <= 0
-                              ? "rounded-md bg-destructive/15 px-2 py-0.5 font-bold text-destructive"
-                              : r.quantity <= 5
-                                ? "rounded-md bg-secondary px-2 py-0.5 font-bold text-primary"
-                                : "font-bold"
-                          }
-                        >
-                          {formatNumber(r.quantity)}
-                        </span>
-                        {me?.isAdmin && (
-                          <button
-                            type="button"
-                            className="text-xs text-muted-foreground underline hover:text-gold"
-                            onClick={() => {
-                              setEditKey(r.key);
-                              setEditQty(String(r.quantity));
-                            }}
-                          >
-                            تعديل
-                          </button>
-                        )}
-                      </div>
-                    )}
+                          تعديل المنتج
+                        </button>
+                      )}
+                    </div>
                   </td>
+
                   <td className="p-3 text-muted-foreground">{formatNumber(soldByProduct.get(r.product.id) ?? 0)}</td>
                   <td className="p-3 text-muted-foreground">{formatSDG(Number(r.product.cost_price))}</td>
                   <td className="p-3">{formatSDG(r.quantity * Number(r.product.cost_price))}</td>
