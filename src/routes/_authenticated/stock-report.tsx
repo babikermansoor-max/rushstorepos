@@ -317,30 +317,74 @@ function StockReport() {
     }
   }
 
-  async function saveQuantity(productId: string, branchId: string | null) {
-    const target = branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
-    if (!target) {
-      toast.error("اختر الفرع أولاً");
+  function openEdit(row: Line) {
+    setEditRow(row);
+    setEditForm({
+      name: row.product.name,
+      barcode: row.product.barcode ?? "",
+      category_id: row.product.category_id ?? "",
+      cost_price: String(row.product.cost_price ?? ""),
+      sale_price: String(row.product.sale_price ?? ""),
+      quantity: String(row.quantity),
+    });
+  }
+
+  async function saveProduct(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editRow) return;
+    const cost = Number(editForm.cost_price || 0);
+    const price = Number(editForm.sale_price || 0);
+    if (!editForm.name.trim()) {
+      toast.error("أدخل اسم المنتج");
       return;
     }
-    const qty = Math.floor(Number(editQty));
+    if (price <= 0) {
+      toast.error("أدخل سعر بيع صحيح");
+      return;
+    }
+    if (price < cost) {
+      toast.error("سعر البيع أقل من سعر الشراء");
+      return;
+    }
+    const qty = Math.floor(Number(editForm.quantity || 0));
     if (!Number.isFinite(qty) || qty < 0) {
       toast.error("أدخل كمية صحيحة");
       return;
     }
     setSaving(true);
     const { error } = await supabase
-      .from("stock")
-      .upsert({ product_id: productId, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
-    setSaving(false);
+      .from("products")
+      .update({
+        name: editForm.name.trim(),
+        barcode: editForm.barcode.trim() || null,
+        category_id: editForm.category_id || null,
+        cost_price: cost,
+        sale_price: price,
+      })
+      .eq("id", editRow.product.id);
     if (error) {
-      toast.error(error.message);
+      setSaving(false);
+      toast.error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
       return;
     }
-    toast.success("تم تحديث الكمية");
-    setEditKey(null);
+
+    const target = editRow.branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
+    if (target && qty !== editRow.quantity) {
+      const { error: stockError } = await supabase
+        .from("stock")
+        .upsert({ product_id: editRow.product.id, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
+      if (stockError) {
+        setSaving(false);
+        toast.error(stockError.message);
+        return;
+      }
+    }
+    setSaving(false);
+    toast.success("تم حفظ التعديلات");
+    setEditRow(null);
     queryClient.invalidateQueries();
   }
+
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
