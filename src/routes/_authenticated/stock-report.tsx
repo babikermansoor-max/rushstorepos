@@ -120,7 +120,7 @@ function StockReport() {
       ((
         await supabase
           .from("products")
-          .select("id, name, barcode, cost_price, sale_price, categories(name)")
+          .select("id, name, barcode, cost_price, sale_price, category_id, categories(name)")
           .eq("is_active", true)
           .order("name")
       ).data ?? []) as unknown as Product[],
