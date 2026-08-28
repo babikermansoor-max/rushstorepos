@@ -786,7 +786,74 @@ function StockReport() {
         </div>
       </div>
 
+      <Dialog open={!!editRow} onOpenChange={(v) => !v && setEditRow(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل المنتج</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveProduct} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>اسم المنتج</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>الباركود</Label>
+                <Input value={editForm.barcode} onChange={(e) => setEditForm({ ...editForm, barcode: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>الصنف</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={editForm.category_id}
+                  onChange={(e) => setEditForm({ ...editForm, category_id: e.target.value })}
+                >
+                  <option value="">بدون</option>
+                  {(categories ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>سعر الشراء</Label>
+                <Input
+                  type="number"
+                  value={editForm.cost_price}
+                  onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>سعر البيع</Label>
+                <Input
+                  type="number"
+                  value={editForm.sale_price}
+                  onChange={(e) => setEditForm({ ...editForm, sale_price: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>الكمية ({editRow?.branchName})</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editForm.quantity}
+                onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={saving}>
+              حفظ التعديلات
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <ReceiptDialog data={receipt} open={!!receipt} onOpenChange={(v) => !v && setReceipt(null)} autoPrint={false} />
+
     </div>
   );
 }
