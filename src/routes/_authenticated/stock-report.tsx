@@ -33,6 +33,7 @@ type Product = {
   barcode: string | null;
   cost_price: number;
   sale_price: number;
+  category_id: string | null;
   categories: { name: string } | null;
 };
 
@@ -91,8 +92,15 @@ function StockReport() {
   });
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
-  const [editKey, setEditKey] = useState<string | null>(null);
-  const [editQty, setEditQty] = useState("");
+  const [editRow, setEditRow] = useState<Line | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    barcode: "",
+    category_id: "",
+    cost_price: "",
+    sale_price: "",
+    quantity: "",
+  });
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
@@ -112,7 +120,7 @@ function StockReport() {
       ((
         await supabase
           .from("products")
-          .select("id, name, barcode, cost_price, sale_price, categories(name)")
+          .select("id, name, barcode, cost_price, sale_price, category_id, categories(name)")
           .eq("is_active", true)
           .order("name")
       ).data ?? []) as unknown as Product[],
@@ -309,30 +317,74 @@ function StockReport() {
     }
   }
 
-  async function saveQuantity(productId: string, branchId: string | null) {
-    const target = branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
-    if (!target) {
-      toast.error("اختر الفرع أولاً");
+  function openEdit(row: Line) {
+    setEditRow(row);
+    setEditForm({
+      name: row.product.name,
+      barcode: row.product.barcode ?? "",
+      category_id: row.product.category_id ?? "",
+      cost_price: String(row.product.cost_price ?? ""),
+      sale_price: String(row.product.sale_price ?? ""),
+      quantity: String(row.quantity),
+    });
+  }
+
+  async function saveProduct(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editRow) return;
+    const cost = Number(editForm.cost_price || 0);
+    const price = Number(editForm.sale_price || 0);
+    if (!editForm.name.trim()) {
+      toast.error("أدخل اسم المنتج");
       return;
     }
-    const qty = Math.floor(Number(editQty));
+    if (price <= 0) {
+      toast.error("أدخل سعر بيع صحيح");
+      return;
+    }
+    if (price < cost) {
+      toast.error("سعر البيع أقل من سعر الشراء");
+      return;
+    }
+    const qty = Math.floor(Number(editForm.quantity || 0));
     if (!Number.isFinite(qty) || qty < 0) {
       toast.error("أدخل كمية صحيحة");
       return;
     }
     setSaving(true);
     const { error } = await supabase
-      .from("stock")
-      .upsert({ product_id: productId, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
-    setSaving(false);
+      .from("products")
+      .update({
+        name: editForm.name.trim(),
+        barcode: editForm.barcode.trim() || null,
+        category_id: editForm.category_id || null,
+        cost_price: cost,
+        sale_price: price,
+      })
+      .eq("id", editRow.product.id);
     if (error) {
-      toast.error(error.message);
+      setSaving(false);
+      toast.error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
       return;
     }
-    toast.success("تم تحديث الكمية");
-    setEditKey(null);
+
+    const target = editRow.branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
+    if (target && qty !== editRow.quantity) {
+      const { error: stockError } = await supabase
+        .from("stock")
+        .upsert({ product_id: editRow.product.id, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
+      if (stockError) {
+        setSaving(false);
+        toast.error(stockError.message);
+        return;
+      }
+    }
+    setSaving(false);
+    toast.success("تم حفظ التعديلات");
+    setEditRow(null);
     queryClient.invalidateQueries();
   }
+
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
@@ -699,60 +751,30 @@ function StockReport() {
                   <td className="p-3 text-muted-foreground">{r.product.categories?.name ?? "—"}</td>
                   <td className="p-3 text-muted-foreground">{r.branchName}</td>
                   <td className="p-3">
-                    {editKey === r.key ? (
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min={0}
-                          autoFocus
-                          value={editQty}
-                          onChange={(e) => setEditQty(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveQuantity(r.product.id, r.branchId);
-                            if (e.key === "Escape") setEditKey(null);
-                          }}
-                          className="h-8 w-20"
-                        />
-                        <Button
-                          size="sm"
-                          className="h-8"
-                          disabled={saving}
-                          onClick={() => saveQuantity(r.product.id, r.branchId)}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={
+                          r.quantity <= 0
+                            ? "rounded-md bg-destructive/15 px-2 py-0.5 font-bold text-destructive"
+                            : r.quantity <= 5
+                              ? "rounded-md bg-secondary px-2 py-0.5 font-bold text-primary"
+                              : "font-bold"
+                        }
+                      >
+                        {formatNumber(r.quantity)}
+                      </span>
+                      {me?.isAdmin && (
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground underline hover:text-gold"
+                          onClick={() => openEdit(r)}
                         >
-                          حفظ
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditKey(null)}>
-                          إلغاء
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={
-                            r.quantity <= 0
-                              ? "rounded-md bg-destructive/15 px-2 py-0.5 font-bold text-destructive"
-                              : r.quantity <= 5
-                                ? "rounded-md bg-secondary px-2 py-0.5 font-bold text-primary"
-                                : "font-bold"
-                          }
-                        >
-                          {formatNumber(r.quantity)}
-                        </span>
-                        {me?.isAdmin && (
-                          <button
-                            type="button"
-                            className="text-xs text-muted-foreground underline hover:text-gold"
-                            onClick={() => {
-                              setEditKey(r.key);
-                              setEditQty(String(r.quantity));
-                            }}
-                          >
-                            تعديل
-                          </button>
-                        )}
-                      </div>
-                    )}
+                          تعديل المنتج
+                        </button>
+                      )}
+                    </div>
                   </td>
+
                   <td className="p-3 text-muted-foreground">{formatNumber(soldByProduct.get(r.product.id) ?? 0)}</td>
                   <td className="p-3 text-muted-foreground">{formatSDG(Number(r.product.cost_price))}</td>
                   <td className="p-3">{formatSDG(r.quantity * Number(r.product.cost_price))}</td>
@@ -764,7 +786,74 @@ function StockReport() {
         </div>
       </div>
 
+      <Dialog open={!!editRow} onOpenChange={(v) => !v && setEditRow(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل المنتج</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveProduct} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>اسم المنتج</Label>
+              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>الباركود</Label>
+                <Input value={editForm.barcode} onChange={(e) => setEditForm({ ...editForm, barcode: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>الصنف</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={editForm.category_id}
+                  onChange={(e) => setEditForm({ ...editForm, category_id: e.target.value })}
+                >
+                  <option value="">بدون</option>
+                  {(categories ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>سعر الشراء</Label>
+                <Input
+                  type="number"
+                  value={editForm.cost_price}
+                  onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>سعر البيع</Label>
+                <Input
+                  type="number"
+                  value={editForm.sale_price}
+                  onChange={(e) => setEditForm({ ...editForm, sale_price: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>الكمية ({editRow?.branchName})</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editForm.quantity}
+                onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={saving}>
+              حفظ التعديلات
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <ReceiptDialog data={receipt} open={!!receipt} onOpenChange={(v) => !v && setReceipt(null)} autoPrint={false} />
+
     </div>
   );
 }
