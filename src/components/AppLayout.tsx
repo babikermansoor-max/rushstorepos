@@ -10,6 +10,7 @@ import {
   BarChart3,
   ClipboardList,
   Users,
+  Wallet,
   LogOut,
   Store,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const NAV = [
   { to: "/repairs", label: "الإصلاحات", icon: Wrench, admin: false },
   { to: "/reports", label: "التقارير", icon: BarChart3, admin: false },
   { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: false },
+  { to: "/expenses", label: "المنصرفات", icon: Wallet, admin: false },
   { to: "/users", label: "الموظفين والفروع", icon: Users, admin: true },
 ] as const;
 

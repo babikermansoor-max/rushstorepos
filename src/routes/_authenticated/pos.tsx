@@ -202,7 +202,7 @@ function POS() {
           price: netPrice(l),
         })),
         total,
-        paid: method === "cash" && paid ? Number(paid) : null,
+        paid: paid ? Number(paid) : null,
       });
       setReceiptOpen(true);
 
@@ -405,33 +405,40 @@ function POS() {
             ))}
           </div>
 
-          {method === "cash" && (
-            <div className="mb-3">
-              <Input
-                value={paid}
-                onChange={(e) => {
-                  setPaidTouched(true);
-                  setPaid(e.target.value);
-                }}
-                inputMode="numeric"
-                placeholder="المبلغ المدفوع"
-              />
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {paidTouched ? (
-                  Number(paid) >= total ? (
+          <div className="mb-3">
+            <Input
+              value={paid}
+              onChange={(e) => {
+                setPaidTouched(true);
+                setPaid(e.target.value);
+              }}
+              inputMode="decimal"
+              placeholder={method === "cash" ? "المبلغ المدفوع" : "قيمة التحويل (بنكك)"}
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {paidTouched ? (
+                Number(paid) >= total ? (
+                  method === "cash" ? (
                     <>
                       الباقي للعميل:{" "}
                       <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
                     </>
                   ) : (
-                    <span className="text-destructive">المتبقي على العميل: {formatSDG(total - Number(paid || 0))}</span>
+                    <>
+                      الزيادة في التحويل:{" "}
+                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
+                    </>
                   )
                 ) : (
-                  "المبلغ المدفوع = مبلغ البيع تلقائياً"
-                )}
-              </p>
-            </div>
-          )}
+                  <span className="text-destructive">المتبقي على العميل: {formatSDG(total - Number(paid || 0))}</span>
+                )
+              ) : method === "cash" ? (
+                "المبلغ المدفوع = مبلغ البيع تلقائياً"
+              ) : (
+                "قيمة التحويل = مبلغ البيع تلقائياً، ويمكن تعديلها"
+              )}
+            </p>
+          </div>
 
           {discountAmount > 0 && (
             <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
