@@ -10,6 +10,7 @@ import {
   BarChart3,
   ClipboardList,
   Users,
+  Wallet,
   LogOut,
   Store,
 } from "lucide-react";
