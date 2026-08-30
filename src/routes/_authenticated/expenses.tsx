@@ -115,8 +115,11 @@ function Expenses() {
 
   return (
     <div>
-      <PageHeader title="المنصرفات" subtitle="تسجيل ومتابعة مصروفات المحل">
-        <Dialog open={open} onOpenChange={setOpen}>
+      <PageHeader
+        title="المنصرفات"
+        subtitle="تسجيل ومتابعة مصروفات المحل"
+        action={
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="size-4" />
@@ -168,8 +171,9 @@ function Expenses() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
-      </PageHeader>
+          </Dialog>
+        }
+      />
 
       <div className="surface mb-4 flex flex-wrap items-end gap-3 p-4">
         <div>
