@@ -202,7 +202,7 @@ function POS() {
           price: netPrice(l),
         })),
         total,
-        paid: method === "cash" && paid ? Number(paid) : null,
+        paid: paid ? Number(paid) : null,
       });
       setReceiptOpen(true);
 
