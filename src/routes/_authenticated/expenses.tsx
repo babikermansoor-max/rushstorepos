@@ -48,7 +48,7 @@ function Expenses() {
   const [busy, setBusy] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState<string>("عام");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<"cash" | "bankak">("cash");
   const [notes, setNotes] = useState("");
@@ -78,8 +78,14 @@ function Expenses() {
 
   async function addExpense() {
     const value = Number(amount);
-    if (!title.trim()) return toast.error("أدخل وصف المنصرف");
-    if (!Number.isFinite(value) || value <= 0) return toast.error("أدخل مبلغاً صحيحاً");
+    if (!title.trim()) {
+      toast.error("أدخل وصف المنصرف");
+      return;
+    }
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("أدخل مبلغاً صحيحاً");
+      return;
+    }
     setBusy(true);
     try {
       const { error } = await supabase.from("expenses").insert({
@@ -108,7 +114,10 @@ function Expenses() {
 
   async function removeExpense(id: string) {
     const { error } = await supabase.from("expenses").delete().eq("id", id);
-    if (error) return toast.error("تعذّر الحذف");
+    if (error) {
+      toast.error("تعذّر الحذف");
+      return;
+    }
     toast.success("تم حذف المنصرف");
     queryClient.invalidateQueries({ queryKey: ["expenses"] });
   }
