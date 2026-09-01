@@ -92,7 +92,7 @@ function POS() {
 
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
   const total = cart.reduce((s, l) => s + netPrice(l) * l.qty, 0);
-  const discountAmount = subtotal - total;
+  
   const units = cart.reduce((s, l) => s + l.qty, 0);
 
   // القيمة المكتوبة هي إجمالي الفاتورة الفعلي (لا تتجاوز مجموع الأسعار المعتمدة)
