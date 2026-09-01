@@ -171,17 +171,22 @@ function POS() {
       toast.error(`الكمية غير كافية للمنتج ${short.name} (المتاح: ${short.stock})`);
       return;
     }
+    if (charged <= 0) {
+      toast.error("أدخل قيمة المبلغ");
+      return;
+    }
     setBusy(true);
     try {
+      const items = billedItems();
       const { data, error } = await supabase.rpc("create_sale", {
         p_branch: branchId as unknown as string,
         p_customer: customer || "",
         p_method: method,
-        p_items: cart.map((l) => ({
-          product_id: l.id,
-          product_name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
-          quantity: l.qty,
-          unit_price: netPrice(l),
+        p_items: items.map((i) => ({
+          product_id: i.id,
+          product_name: i.name,
+          quantity: i.qty,
+          unit_price: i.price,
         })),
       });
       if (error) throw error;
