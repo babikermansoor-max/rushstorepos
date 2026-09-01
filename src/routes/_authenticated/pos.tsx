@@ -92,8 +92,31 @@ function POS() {
 
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
   const total = cart.reduce((s, l) => s + netPrice(l) * l.qty, 0);
-  const discountAmount = subtotal - total;
+  
   const units = cart.reduce((s, l) => s + l.qty, 0);
+
+  // القيمة المكتوبة هي إجمالي الفاتورة الفعلي (لا تتجاوز مجموع الأسعار المعتمدة)
+  const typed = paidTouched && paid.trim() !== "" ? Number(paid) : total;
+  const charged = Number.isFinite(typed) && typed > 0 ? Math.min(typed, subtotal) : total;
+  const chargedDiscount = subtotal - charged;
+
+  // توزيع القيمة المكتوبة على أسطر الفاتورة بالتناسب
+  function billedItems() {
+    const base = cart.map((l) => netPrice(l) * l.qty);
+    const sum = base.reduce((s, v) => s + v, 0);
+    const ratio = sum > 0 ? charged / sum : 1;
+    let allocated = 0;
+    return cart.map((l, i) => {
+      const lineTotal =
+        i === cart.length - 1
+          ? Math.round((charged - allocated) * 100) / 100
+          : Math.round((base[i] ?? 0) * ratio * 100) / 100;
+      allocated += lineTotal;
+      const unit = Math.min(Math.round((lineTotal / l.qty) * 100) / 100, l.price);
+      return { id: l.id, name: l.name, qty: l.qty, price: unit };
+    });
+  }
+
 
   // المبلغ المدفوع = مبلغ البيع تلقائياً ما لم يعدّله الموظف
   useEffect(() => {
@@ -171,17 +194,22 @@ function POS() {
       toast.error(`الكمية غير كافية للمنتج ${short.name} (المتاح: ${short.stock})`);
       return;
     }
+    if (charged <= 0) {
+      toast.error("أدخل قيمة المبلغ");
+      return;
+    }
     setBusy(true);
     try {
+      const items = billedItems();
       const { data, error } = await supabase.rpc("create_sale", {
         p_branch: branchId as unknown as string,
         p_customer: customer || "",
         p_method: method,
-        p_items: cart.map((l) => ({
-          product_id: l.id,
-          product_name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
-          quantity: l.qty,
-          unit_price: netPrice(l),
+        p_items: items.map((i) => ({
+          product_id: i.id,
+          product_name: i.name,
+          quantity: i.qty,
+          unit_price: i.price,
         })),
       });
       if (error) throw error;
@@ -196,13 +224,9 @@ function POS() {
         customer: customer || null,
 
         paymentMethod: method,
-        items: cart.map((l) => ({
-          name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
-          qty: l.qty,
-          price: netPrice(l),
-        })),
-        total,
-        paid: paid ? Number(paid) : null,
+        items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+        total: charged,
+        paid: charged,
       });
       setReceiptOpen(true);
 
@@ -413,49 +437,42 @@ function POS() {
                 setPaid(e.target.value);
               }}
               inputMode="decimal"
-              placeholder={method === "cash" ? "المبلغ المدفوع" : "قيمة التحويل (بنكك)"}
+              placeholder={method === "cash" ? "قيمة المعاملة (نقدي)" : "قيمة التحويل (بنكك)"}
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {paidTouched ? (
-                Number(paid) >= total ? (
-                  method === "cash" ? (
-                    <>
-                      الباقي للعميل:{" "}
-                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
-                    </>
-                  ) : (
-                    <>
-                      الزيادة في التحويل:{" "}
-                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
-                    </>
-                  )
+              {paidTouched && paid.trim() !== "" ? (
+                Number(paid) > subtotal ? (
+                  <span className="text-destructive">
+                    القيمة أعلى من مجموع الأسعار المعتمدة — سيتم التسجيل بـ {formatSDG(subtotal)}
+                  </span>
                 ) : (
-                  <span className="text-destructive">المتبقي على العميل: {formatSDG(total - Number(paid || 0))}</span>
+                  <>
+                    سيتم تسجيل المعاملة بقيمة{" "}
+                    <span className="font-bold text-gold">{formatSDG(charged)}</span>
+                  </>
                 )
-              ) : method === "cash" ? (
-                "المبلغ المدفوع = مبلغ البيع تلقائياً"
               ) : (
-                "قيمة التحويل = مبلغ البيع تلقائياً، ويمكن تعديلها"
+                "القيمة المكتوبة هي إجمالي الفاتورة المسجّل"
               )}
             </p>
           </div>
 
-          {discountAmount > 0 && (
+          {chargedDiscount > 0 && (
             <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">قبل التخفيض</span>
               <span className="line-through text-muted-foreground">{formatSDG(subtotal)}</span>
             </div>
           )}
-          {discountAmount > 0 && (
+          {chargedDiscount > 0 && (
             <div className="flex items-center justify-between pt-1 text-sm">
               <span className="text-muted-foreground">قيمة التخفيض</span>
-              <span className="font-bold text-destructive">-{formatSDG(discountAmount)}</span>
+              <span className="font-bold text-destructive">-{formatSDG(chargedDiscount)}</span>
             </div>
           )}
 
           <div className="flex items-center justify-between border-t border-border py-3">
             <span className="text-sm text-muted-foreground">الإجمالي</span>
-            <span className="text-2xl font-extrabold">{formatSDG(total)}</span>
+            <span className="text-2xl font-extrabold">{formatSDG(charged)}</span>
           </div>
 
           <Button onClick={checkout} disabled={!cart.length || busy} className="w-full py-6 text-base font-bold">
