@@ -811,13 +811,39 @@ function StockReport() {
       <div className="surface mb-4 p-4">
         <h2 className="font-bold">تقرير الأصناف</h2>
         <p className="mb-3 text-sm text-muted-foreground">
-          اضغط على الفئة لعرض محتوياتها، ثم على المنتج لعرض فواتيره — من {from} إلى {to}
+          ابحث بالاسم أو الباركود واختر الفئة — من {from} إلى {to}
         </p>
+
+        <input
+          value={repSearch}
+          onChange={(e) => setRepSearch(e.target.value)}
+          placeholder="ابحث بالاسم أو الباركود…"
+          className="mb-3 h-12 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none focus:border-gold"
+        />
+        <div className="mb-4 flex flex-wrap gap-2">
+          {reportCatNames.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setRepCat(n)}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                repCat === n
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:bg-secondary/70"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
         <div className="max-h-[24rem] overflow-auto">
           <table className="w-full text-right text-sm">
             <thead className="sticky top-0 bg-card">
               <tr className="border-b border-border text-xs text-muted-foreground">
                 <th className="p-3 font-medium">الصنف / المنتج</th>
+                <th className="p-3 font-medium">سعر الشراء</th>
+                <th className="p-3 font-medium">سعر البيع</th>
                 <th className="p-3 font-medium">القطع المباعة</th>
                 <th className="p-3 font-medium">عدد الفواتير</th>
                 <th className="p-3 font-medium">الإيراد</th>
@@ -826,47 +852,61 @@ function StockReport() {
               </tr>
             </thead>
             <tbody>
-              {categoryReport.length === 0 && (
+              {filteredCategoryReport.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    لا توجد مبيعات في هذه الفترة
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    لا توجد نتائج في هذه الفترة
                   </td>
                 </tr>
               )}
-              {categoryReport.map((c) => (
+              {filteredCategoryReport.map((c) => {
+                const expanded = openCats[c.name] || repSearch.trim().length > 0;
+                const units = c.items.reduce((s, p) => s + p.units, 0);
+                const revenue = c.items.reduce((s, p) => s + p.revenue, 0);
+                const cost = c.items.reduce((s, p) => s + p.cost, 0);
+                const invoices = new Set(c.items.flatMap((p) => [...p.invoices])).size;
+                return (
                 <Fragment key={c.name}>
                   <tr
                     onClick={() => setOpenCats((s) => ({ ...s, [c.name]: !s[c.name] }))}
                     className="cursor-pointer border-b border-border/60 bg-secondary/30 hover:bg-secondary/60"
                   >
                     <td className="p-3 font-bold">
-                      <span className="ml-2 text-muted-foreground">{openCats[c.name] ? "▾" : "▸"}</span>
+                      <span className="ml-2 text-muted-foreground">{expanded ? "▾" : "▸"}</span>
                       {c.name}
                       <span className="mr-2 text-xs text-muted-foreground">({c.items.length} منتج)</span>
                     </td>
-                    <td className="p-3 font-bold">{formatNumber(c.units)}</td>
-                    <td className="p-3 text-muted-foreground">{formatNumber(c.invoices.size)}</td>
-                    <td className="p-3 font-bold text-gold">{formatSDG(c.revenue)}</td>
-                    <td className="p-3 text-muted-foreground">{formatSDG(c.cost)}</td>
-                    <td className="p-3 font-bold">{formatSDG(c.revenue - c.cost)}</td>
+                    <td className="p-3 text-muted-foreground">—</td>
+                    <td className="p-3 text-muted-foreground">—</td>
+                    <td className="p-3 font-bold">{formatNumber(units)}</td>
+                    <td className="p-3 text-muted-foreground">{formatNumber(invoices)}</td>
+                    <td className="p-3 font-bold text-gold">{formatSDG(revenue)}</td>
+                    <td className="p-3 text-muted-foreground">{formatSDG(cost)}</td>
+                    <td className="p-3 font-bold">{formatSDG(revenue - cost)}</td>
                   </tr>
-                  {openCats[c.name] &&
-                    c.items.map((p) => (
+                  {expanded &&
+                    c.items.map((p) => {
+                      const pr = priceOf(p.id);
+                      return (
                       <tr
                         key={p.id}
                         onClick={() => setProductDetail({ id: p.id, name: p.name })}
                         className="cursor-pointer border-b border-border/60 hover:bg-secondary/50"
                       >
                         <td className="p-3 pr-8 font-semibold">{p.name}</td>
+                        <td className="p-3 text-muted-foreground">{formatSDG(pr.cost)}</td>
+                        <td className="p-3 font-semibold text-gold">{formatSDG(pr.sale)}</td>
                         <td className="p-3 font-bold">{formatNumber(p.units)}</td>
                         <td className="p-3 text-muted-foreground">{formatNumber(p.invoices.size)}</td>
                         <td className="p-3 font-bold text-gold">{formatSDG(p.revenue)}</td>
                         <td className="p-3 text-muted-foreground">{formatSDG(p.cost)}</td>
                         <td className="p-3 font-bold">{formatSDG(p.revenue - p.cost)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                 </Fragment>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
