@@ -101,6 +101,7 @@ function StockReport() {
     sale_price: "",
     quantity: "",
   });
+  const [productDetail, setProductDetail] = useState<{ id: string; name: string } | null>(null);
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
