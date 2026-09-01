@@ -441,16 +441,10 @@ function POS() {
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
               {paidTouched && paid.trim() !== "" ? (
-                Number(paid) > subtotal ? (
-                  <span className="text-destructive">
-                    القيمة أعلى من مجموع الأسعار المعتمدة — سيتم التسجيل بـ {formatSDG(subtotal)}
-                  </span>
-                ) : (
-                  <>
-                    سيتم تسجيل المعاملة بقيمة{" "}
-                    <span className="font-bold text-gold">{formatSDG(charged)}</span>
-                  </>
-                )
+                <>
+                  سيتم تسجيل المعاملة وطباعتها بقيمة{" "}
+                  <span className="font-bold text-gold">{formatSDG(charged)}</span>
+                </>
               ) : (
                 "القيمة المكتوبة هي إجمالي الفاتورة المسجّل"
               )}
