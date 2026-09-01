@@ -302,6 +302,30 @@ function StockReport() {
     return [...map.values()].sort((a, b) => b.units - a.units);
   }, [movement, branch, products]);
 
+  // تجميع تقرير الأصناف حسب الفئة (الصنف ومحتوياته)
+  const categoryReport = useMemo(() => {
+    const catOf = (id: string) => {
+      const p = (products ?? []).find((x) => x.id === id);
+      return p?.categories?.name ?? "بدون فئة";
+    };
+    const map = new Map<
+      string,
+      { name: string; units: number; revenue: number; cost: number; invoices: Set<string>; items: typeof productReport }
+    >();
+    for (const p of productReport) {
+      const name = p.id.startsWith("x-") ? "بدون فئة" : catOf(p.id);
+      const cur = map.get(name) ?? { name, units: 0, revenue: 0, cost: 0, invoices: new Set<string>(), items: [] };
+      cur.units += p.units;
+      cur.revenue += p.revenue;
+      cur.cost += p.cost;
+      p.invoices.forEach((i) => cur.invoices.add(i));
+      cur.items.push(p);
+      map.set(name, cur);
+    }
+    return [...map.values()].sort((a, b) => b.units - a.units);
+  }, [productReport, products]);
+
+
   // فواتير صنف محدد
   const productInvoices = useMemo(() => {
     if (!productDetail) return [];
