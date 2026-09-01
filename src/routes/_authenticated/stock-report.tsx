@@ -103,6 +103,7 @@ function StockReport() {
   });
   const [productDetail, setProductDetail] = useState<{ id: string; name: string } | null>(null);
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
+  const [openQty, setOpenQty] = useState<Record<string, boolean>>({});
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
