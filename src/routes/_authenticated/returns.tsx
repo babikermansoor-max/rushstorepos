@@ -31,10 +31,31 @@ function Returns() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ product_id: "", quantity: "1", amount: "", reason: "" });
 
+  const [barcode, setBarcode] = useState("");
+
   const { data: products } = useQuery({
     queryKey: ["products-basic"],
-    queryFn: async () => (await supabase.from("products").select("id, name, sale_price").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("products").select("id, name, sale_price, barcode").order("name")).data ?? [],
   });
+
+  function scanBarcode(code: string) {
+    const v = code.trim();
+    if (!v) return;
+    const found = (products ?? []).find((p) => (p.barcode ?? "").trim() === v);
+    if (!found) {
+      toast.error("لا يوجد منتج بهذا الباركود");
+      return;
+    }
+    setForm((f) => {
+      const same = f.product_id === found.id;
+      const qty = same ? Math.floor(Number(f.quantity || 1)) + 1 : 1;
+      return { ...f, product_id: found.id, quantity: String(qty), amount: String(Number(found.sale_price) * qty) };
+    });
+    setBarcode("");
+    toast.success(`تمت إضافة ${found.name}`);
+  }
+
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -86,6 +107,7 @@ function Returns() {
     toast.success("تم تسجيل المرتجع وإرجاع الكمية للمخزون");
     setOpen(false);
     setForm({ product_id: "", quantity: "1", amount: "", reason: "" });
+    setBarcode("");
     queryClient.invalidateQueries();
   }
 
@@ -106,6 +128,21 @@ function Returns() {
                 <DialogTitle>تسجيل مرتجع</DialogTitle>
               </DialogHeader>
               <form onSubmit={submit} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>الباركود</Label>
+                  <Input
+                    autoFocus
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        scanBarcode(barcode);
+                      }
+                    }}
+                    placeholder="امسح الباركود ثم Enter"
+                  />
+                </div>
                 <div className="space-y-1.5">
                   <Label>المنتج</Label>
                   <select
