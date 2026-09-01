@@ -128,6 +128,21 @@ function Returns() {
               </DialogHeader>
               <form onSubmit={submit} className="space-y-3">
                 <div className="space-y-1.5">
+                  <Label>الباركود</Label>
+                  <Input
+                    autoFocus
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        scanBarcode(barcode);
+                      }
+                    }}
+                    placeholder="امسح الباركود ثم Enter"
+                  />
+                </div>
+                <div className="space-y-1.5">
                   <Label>المنتج</Label>
                   <select
                     className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
