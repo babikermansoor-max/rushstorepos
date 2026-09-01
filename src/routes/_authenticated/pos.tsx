@@ -95,9 +95,9 @@ function POS() {
   
   const units = cart.reduce((s, l) => s + l.qty, 0);
 
-  // القيمة المكتوبة هي إجمالي الفاتورة الفعلي (لا تتجاوز مجموع الأسعار المعتمدة)
+  // القيمة المكتوبة هي إجمالي الفاتورة الفعلي بغض النظر عن سعر البيع المعتمد
   const typed = paidTouched && paid.trim() !== "" ? Number(paid) : total;
-  const charged = Number.isFinite(typed) && typed > 0 ? Math.min(typed, subtotal) : total;
+  const charged = Number.isFinite(typed) && typed > 0 ? typed : total;
   const chargedDiscount = subtotal - charged;
 
   // توزيع القيمة المكتوبة على أسطر الفاتورة بالتناسب
@@ -112,7 +112,7 @@ function POS() {
           ? Math.round((charged - allocated) * 100) / 100
           : Math.round((base[i] ?? 0) * ratio * 100) / 100;
       allocated += lineTotal;
-      const unit = Math.min(Math.round((lineTotal / l.qty) * 100) / 100, l.price);
+      const unit = Math.round((lineTotal / l.qty) * 100) / 100;
       return { id: l.id, name: l.name, qty: l.qty, price: unit };
     });
   }
@@ -441,16 +441,10 @@ function POS() {
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
               {paidTouched && paid.trim() !== "" ? (
-                Number(paid) > subtotal ? (
-                  <span className="text-destructive">
-                    القيمة أعلى من مجموع الأسعار المعتمدة — سيتم التسجيل بـ {formatSDG(subtotal)}
-                  </span>
-                ) : (
-                  <>
-                    سيتم تسجيل المعاملة بقيمة{" "}
-                    <span className="font-bold text-gold">{formatSDG(charged)}</span>
-                  </>
-                )
+                <>
+                  سيتم تسجيل المعاملة وطباعتها بقيمة{" "}
+                  <span className="font-bold text-gold">{formatSDG(charged)}</span>
+                </>
               ) : (
                 "القيمة المكتوبة هي إجمالي الفاتورة المسجّل"
               )}
