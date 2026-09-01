@@ -101,6 +101,7 @@ function StockReport() {
     sale_price: "",
     quantity: "",
   });
+  const [productDetail, setProductDetail] = useState<{ id: string; name: string } | null>(null);
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
@@ -277,6 +278,48 @@ function StockReport() {
     }
     return [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }, [movement, branches, branch]);
+
+  // تقرير الأصناف: المباع والإيراد والربح لكل صنف خلال الفترة
+  const productReport = useMemo(() => {
+    const costOf = (id: string) => Number((products ?? []).find((p) => p.id === id)?.cost_price ?? 0);
+    const map = new Map<
+      string,
+      { id: string; name: string; units: number; revenue: number; cost: number; invoices: Set<string> }
+    >();
+    for (const it of movement?.items ?? []) {
+      const s = it.sales;
+      if (branch !== "all" && s.branch_id !== branch) continue;
+      const id = it.product_id ?? `x-${it.product_name}`;
+      const cur = map.get(id) ?? { id, name: it.product_name, units: 0, revenue: 0, cost: 0, invoices: new Set<string>() };
+      const qty = Number(it.quantity);
+      cur.units += qty;
+      cur.revenue += qty * Number(it.unit_price);
+      cur.cost += qty * (it.product_id ? costOf(it.product_id) : 0);
+      cur.invoices.add(s.id);
+      map.set(id, cur);
+    }
+    return [...map.values()].sort((a, b) => b.units - a.units);
+  }, [movement, branch, products]);
+
+  // فواتير صنف محدد
+  const productInvoices = useMemo(() => {
+    if (!productDetail) return [];
+    const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
+    return (movement?.items ?? [])
+      .filter((it) => (it.product_id ?? `x-${it.product_name}`) === productDetail.id)
+      .filter((it) => branch === "all" || it.sales.branch_id === branch)
+      .map((it) => ({
+        saleId: it.sales.id,
+        invoiceNo: it.sales.invoice_no,
+        createdAt: it.sales.created_at,
+        branch: branchName(it.sales.branch_id),
+        seller: movement?.names.get(it.sales.cashier_id ?? "") ?? "—",
+        qty: Number(it.quantity),
+        price: Number(it.unit_price),
+      }))
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }, [productDetail, movement, branches, branch]);
+
 
   async function addProduct(e: React.FormEvent) {
     e.preventDefault();
@@ -666,6 +709,50 @@ function StockReport() {
       </div>
 
       <div className="surface mb-4 p-4">
+        <h2 className="font-bold">تقرير الأصناف</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          اضغط على الصنف لعرض الفواتير التي بيع فيها — من {from} إلى {to}
+        </p>
+        <div className="max-h-[24rem] overflow-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="sticky top-0 bg-card">
+              <tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="p-3 font-medium">الصنف</th>
+                <th className="p-3 font-medium">القطع المباعة</th>
+                <th className="p-3 font-medium">عدد الفواتير</th>
+                <th className="p-3 font-medium">الإيراد</th>
+                <th className="p-3 font-medium">التكلفة</th>
+                <th className="p-3 font-medium">الربح</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productReport.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    لا توجد مبيعات في هذه الفترة
+                  </td>
+                </tr>
+              )}
+              {productReport.map((p) => (
+                <tr
+                  key={p.id}
+                  onClick={() => setProductDetail({ id: p.id, name: p.name })}
+                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                >
+                  <td className="p-3 font-semibold">{p.name}</td>
+                  <td className="p-3 font-bold">{formatNumber(p.units)}</td>
+                  <td className="p-3 text-muted-foreground">{formatNumber(p.invoices.size)}</td>
+                  <td className="p-3 font-bold text-gold">{formatSDG(p.revenue)}</td>
+                  <td className="p-3 text-muted-foreground">{formatSDG(p.cost)}</td>
+                  <td className="p-3 font-bold">{formatSDG(p.revenue - p.cost)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="surface mb-4 p-4">
         <h2 className="font-bold">الفواتير</h2>
         <p className="mb-3 text-sm text-muted-foreground">اضغط على الفاتورة لعرضها وطباعتها</p>
         <div className="max-h-[24rem] overflow-auto">
@@ -849,6 +936,56 @@ function StockReport() {
               حفظ التعديلات
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!productDetail} onOpenChange={(v) => !v && setProductDetail(null)}>
+        <DialogContent dir="rtl" className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>فواتير الصنف: {productDetail?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[24rem] overflow-auto">
+            <table className="w-full text-right text-sm">
+              <thead className="sticky top-0 bg-card">
+                <tr className="border-b border-border text-xs text-muted-foreground">
+                  <th className="p-2 font-medium">الفاتورة</th>
+                  <th className="p-2 font-medium">التاريخ</th>
+                  <th className="p-2 font-medium">الفرع</th>
+                  <th className="p-2 font-medium">الحساب الذي باع</th>
+                  <th className="p-2 font-medium">الكمية</th>
+                  <th className="p-2 font-medium">السعر</th>
+                  <th className="p-2 font-medium">القيمة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productInvoices.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                      لا توجد فواتير
+                    </td>
+                  </tr>
+                )}
+                {productInvoices.map((r, i) => (
+                  <tr
+                    key={`${r.saleId}-${i}`}
+                    onClick={() => {
+                      const inv = invoices.find((x) => x.invoiceNo === r.invoiceNo);
+                      if (inv) setReceipt(inv);
+                    }}
+                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                  >
+                    <td className="p-2 font-bold">#{r.invoiceNo}</td>
+                    <td className="p-2 text-muted-foreground">{formatDate(new Date(r.createdAt))}</td>
+                    <td className="p-2 text-muted-foreground">{r.branch}</td>
+                    <td className="p-2">{r.seller}</td>
+                    <td className="p-2 font-bold">{formatNumber(r.qty)}</td>
+                    <td className="p-2 text-muted-foreground">{formatSDG(r.price)}</td>
+                    <td className="p-2 font-bold text-gold">{formatSDG(r.qty * r.price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </DialogContent>
       </Dialog>
 
