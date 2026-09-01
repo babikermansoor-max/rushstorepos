@@ -305,34 +305,73 @@ function StockReport() {
     return [...map.values()].sort((a, b) => b.units - a.units);
   }, [movement, branch, products]);
 
-  // تجميع تقرير الأصناف حسب الفئة (الصنف ومحتوياته)
-  const categoryReport = useMemo(() => {
-    const catOf = (id: string) => {
-      const p = (products ?? []).find((x) => x.id === id);
-      return p?.categories?.name ?? "بدون فئة";
-    };
-    const map = new Map<
-      string,
-      { name: string; units: number; revenue: number; cost: number; invoices: Set<string>; items: typeof productReport }
-    >();
-    for (const p of productReport) {
-      const name = p.id.startsWith("x-") ? "بدون فئة" : catOf(p.id);
-      const cur = map.get(name) ?? { name, units: 0, revenue: 0, cost: 0, invoices: new Set<string>(), items: [] };
-      cur.units += p.units;
-      cur.revenue += p.revenue;
-      cur.cost += p.cost;
-      p.invoices.forEach((i) => cur.invoices.add(i));
-      cur.items.push(p);
-      map.set(name, cur);
-    }
-    return [...map.values()].sort((a, b) => b.units - a.units);
-  }, [productReport, products]);
-
   // أسعار الشراء والبيع لكل منتج
   const priceOf = (id: string) => {
     const p = (products ?? []).find((x) => x.id === id);
     return { cost: Number(p?.cost_price ?? 0), sale: Number(p?.sale_price ?? 0) };
   };
+
+  // تجميع تقرير الأصناف حسب الفئة — يعرض كل منتجات الفئة (حتى غير المباعة) كما في نقاط البيع
+  const categoryReport = useMemo(() => {
+    const stk = stock ?? [];
+    const stockOf = (id: string) =>
+      branch === "all"
+        ? stk.filter((s) => s.product_id === id).reduce((a, r) => a + Number(r.quantity), 0)
+        : Number(stk.find((s) => s.product_id === id && s.branch_id === branch)?.quantity ?? 0);
+    const statsOf = new Map(productReport.map((p) => [p.id, p]));
+
+    type Item = {
+      id: string;
+      name: string;
+      barcode: string | null;
+      stock: number;
+      units: number;
+      revenue: number;
+      cost: number;
+      invoices: Set<string>;
+    };
+    const map = new Map<string, { name: string; items: Item[] }>();
+    const push = (catName: string, item: Item) => {
+      const cur = map.get(catName) ?? { name: catName, items: [] };
+      cur.items.push(item);
+      map.set(catName, cur);
+    };
+
+    for (const p of products ?? []) {
+      const st = statsOf.get(p.id);
+      push(p.categories?.name ?? "بدون فئة", {
+        id: p.id,
+        name: p.name,
+        barcode: p.barcode,
+        stock: stockOf(p.id),
+        units: st?.units ?? 0,
+        revenue: st?.revenue ?? 0,
+        cost: st?.cost ?? 0,
+        invoices: st?.invoices ?? new Set<string>(),
+      });
+    }
+    // منتجات محذوفة ظهرت في المبيعات فقط
+    for (const p of productReport) {
+      if (!p.id.startsWith("x-")) continue;
+      push("بدون فئة", {
+        id: p.id,
+        name: p.name,
+        barcode: null,
+        stock: 0,
+        units: p.units,
+        revenue: p.revenue,
+        cost: p.cost,
+        invoices: p.invoices,
+      });
+    }
+
+    return [...map.values()]
+      .map((c) => ({
+        ...c,
+        items: c.items.sort((a, b) => b.units - a.units || a.name.localeCompare(b.name, "ar")),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  }, [productReport, products, stock, branch]);
 
   // فئات تقرير الأصناف + البحث
   const reportCatNames = useMemo(
@@ -347,59 +386,15 @@ function StockReport() {
       .map((c) => ({
         ...c,
         items: q
-          ? c.items.filter((p) => {
-              const prod = (products ?? []).find((x) => x.id === p.id);
-              return (
-                p.name.toLowerCase().includes(q) ||
-                (prod?.barcode ?? "").toLowerCase().includes(q)
-              );
-            })
+          ? c.items.filter(
+              (p) =>
+                p.name.toLowerCase().includes(q) || (p.barcode ?? "").toLowerCase().includes(q),
+            )
           : c.items,
       }))
       .filter((c) => c.items.length > 0);
-  }, [categoryReport, repCat, repSearch, products]);
+  }, [categoryReport, repCat, repSearch]);
 
-
-
-  // تقرير كميات الأصناف: المخزون الحالي والمباع خلال الفترة لكل صنف ومحتوياته
-  const qtyReport = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        name: string;
-        stock: number;
-        sold: number;
-        products: { id: string; name: string; barcode: string | null; stock: number; sold: number }[];
-      }
-    >();
-    const stk = stock ?? [];
-    for (const p of products ?? []) {
-      const catName = p.categories?.name ?? "بدون فئة";
-      const stockQty =
-        branch === "all"
-          ? stk.filter((s) => s.product_id === p.id).reduce((s2, r) => s2 + Number(r.quantity), 0)
-          : Number(stk.find((s) => s.product_id === p.id && s.branch_id === branch)?.quantity ?? 0);
-      const soldQty = soldByProduct.get(p.id) ?? 0;
-      const cur = map.get(catName) ?? { name: catName, stock: 0, sold: 0, products: [] };
-      cur.stock += stockQty;
-      cur.sold += soldQty;
-      cur.products.push({ id: p.id, name: p.name, barcode: p.barcode, stock: stockQty, sold: soldQty });
-      map.set(catName, cur);
-    }
-    return [...map.values()].sort((a, b) => b.sold - a.sold || b.stock - a.stock);
-  }, [products, stock, soldByProduct, branch]);
-
-  const qtyRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return qtyReport
-      .map((c) => ({
-        ...c,
-        products: c.products.filter(
-          (p) => !q || p.name.toLowerCase().includes(q) || (p.barcode ?? "").toLowerCase().includes(q),
-        ),
-      }))
-      .filter((c) => !q || c.products.length > 0);
-  }, [qtyReport, search]);
 
   // فواتير صنف محدد
   const productInvoices = useMemo(() => {
