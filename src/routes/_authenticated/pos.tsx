@@ -95,6 +95,29 @@ function POS() {
   const discountAmount = subtotal - total;
   const units = cart.reduce((s, l) => s + l.qty, 0);
 
+  // القيمة المكتوبة هي إجمالي الفاتورة الفعلي (لا تتجاوز مجموع الأسعار المعتمدة)
+  const typed = paidTouched && paid.trim() !== "" ? Number(paid) : total;
+  const charged = Number.isFinite(typed) && typed > 0 ? Math.min(typed, subtotal) : total;
+  const chargedDiscount = subtotal - charged;
+
+  // توزيع القيمة المكتوبة على أسطر الفاتورة بالتناسب
+  function billedItems() {
+    const base = cart.map((l) => netPrice(l) * l.qty);
+    const sum = base.reduce((s, v) => s + v, 0);
+    const ratio = sum > 0 ? charged / sum : 1;
+    let allocated = 0;
+    return cart.map((l, i) => {
+      const lineTotal =
+        i === cart.length - 1
+          ? Math.round((charged - allocated) * 100) / 100
+          : Math.round(base[i] * ratio * 100) / 100;
+      allocated += lineTotal;
+      const unit = Math.min(Math.round((lineTotal / l.qty) * 100) / 100, l.price);
+      return { id: l.id, name: l.name, qty: l.qty, price: unit };
+    });
+  }
+
+
   // المبلغ المدفوع = مبلغ البيع تلقائياً ما لم يعدّله الموظف
   useEffect(() => {
     if (!paidTouched) setPaid(total ? String(total) : "");
