@@ -112,7 +112,7 @@ function POS() {
           ? Math.round((charged - allocated) * 100) / 100
           : Math.round((base[i] ?? 0) * ratio * 100) / 100;
       allocated += lineTotal;
-      const unit = Math.min(Math.round((lineTotal / l.qty) * 100) / 100, l.price);
+      const unit = Math.round((lineTotal / l.qty) * 100) / 100;
       return { id: l.id, name: l.name, qty: l.qty, price: unit };
     });
   }
