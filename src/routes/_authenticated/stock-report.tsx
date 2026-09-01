@@ -879,26 +879,51 @@ function StockReport() {
                     <td className="p-3 text-muted-foreground">{formatSDG(cost)}</td>
                     <td className="p-3 font-bold">{formatSDG(revenue - cost)}</td>
                   </tr>
-                  {expanded &&
-                    c.items.map((p) => {
-                      const pr = priceOf(p.id);
-                      return (
-                      <tr
-                        key={p.id}
-                        onClick={() => setProductDetail({ id: p.id, name: p.name })}
-                        className="cursor-pointer border-b border-border/60 hover:bg-secondary/50"
-                      >
-                        <td className="p-3 pr-8 font-semibold">{p.name}</td>
-                        <td className="p-3 text-muted-foreground">{formatSDG(pr.cost)}</td>
-                        <td className="p-3 font-semibold text-gold">{formatSDG(pr.sale)}</td>
-                        <td className="p-3 font-bold">{formatNumber(p.units)}</td>
-                        <td className="p-3 text-muted-foreground">{formatNumber(p.invoices.size)}</td>
-                        <td className="p-3 font-bold text-gold">{formatSDG(p.revenue)}</td>
-                        <td className="p-3 text-muted-foreground">{formatSDG(p.cost)}</td>
-                        <td className="p-3 font-bold">{formatSDG(p.revenue - p.cost)}</td>
-                      </tr>
-                      );
-                    })}
+                  {expanded && (
+                    <tr className="border-b border-border/60">
+                      <td colSpan={8} className="p-3">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                          {c.items.map((p) => {
+                            const pr = priceOf(p.id);
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setProductDetail({ id: p.id, name: p.name })}
+                                className="flex flex-col gap-1 rounded-xl border border-border bg-background p-3 text-right transition-colors hover:border-gold"
+                              >
+                                <span className="line-clamp-2 text-sm font-bold">{p.name}</span>
+                                {p.barcode && (
+                                  <span className="text-[11px] text-muted-foreground" dir="ltr">
+                                    {p.barcode}
+                                  </span>
+                                )}
+                                <span className="text-sm font-bold text-gold">{formatSDG(pr.sale)}</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  شراء: {formatSDG(pr.cost)}
+                                </span>
+                                <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
+                                  <span className="rounded-full bg-secondary px-2 py-0.5">
+                                    المخزون: {formatNumber(p.stock)}
+                                  </span>
+                                  <span className="rounded-full bg-secondary px-2 py-0.5">
+                                    المباع: {formatNumber(p.units)}
+                                  </span>
+                                  <span className="rounded-full bg-secondary px-2 py-0.5">
+                                    فواتير: {formatNumber(p.invoices.size)}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-muted-foreground">
+                                  إيراد: {formatSDG(p.revenue)} — ربح: {formatSDG(p.revenue - p.cost)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
                 </Fragment>
                 );
               })}
