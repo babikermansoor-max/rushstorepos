@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Printer, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -102,6 +102,7 @@ function StockReport() {
     quantity: "",
   });
   const [productDetail, setProductDetail] = useState<{ id: string; name: string } | null>(null);
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
@@ -300,6 +301,30 @@ function StockReport() {
     }
     return [...map.values()].sort((a, b) => b.units - a.units);
   }, [movement, branch, products]);
+
+  // تجميع تقرير الأصناف حسب الفئة (الصنف ومحتوياته)
+  const categoryReport = useMemo(() => {
+    const catOf = (id: string) => {
+      const p = (products ?? []).find((x) => x.id === id);
+      return p?.categories?.name ?? "بدون فئة";
+    };
+    const map = new Map<
+      string,
+      { name: string; units: number; revenue: number; cost: number; invoices: Set<string>; items: typeof productReport }
+    >();
+    for (const p of productReport) {
+      const name = p.id.startsWith("x-") ? "بدون فئة" : catOf(p.id);
+      const cur = map.get(name) ?? { name, units: 0, revenue: 0, cost: 0, invoices: new Set<string>(), items: [] };
+      cur.units += p.units;
+      cur.revenue += p.revenue;
+      cur.cost += p.cost;
+      p.invoices.forEach((i) => cur.invoices.add(i));
+      cur.items.push(p);
+      map.set(name, cur);
+    }
+    return [...map.values()].sort((a, b) => b.units - a.units);
+  }, [productReport, products]);
+
 
   // فواتير صنف محدد
   const productInvoices = useMemo(() => {
@@ -711,13 +736,13 @@ function StockReport() {
       <div className="surface mb-4 p-4">
         <h2 className="font-bold">تقرير الأصناف</h2>
         <p className="mb-3 text-sm text-muted-foreground">
-          اضغط على الصنف لعرض الفواتير التي بيع فيها — من {from} إلى {to}
+          اضغط على الفئة لعرض محتوياتها، ثم على المنتج لعرض فواتيره — من {from} إلى {to}
         </p>
         <div className="max-h-[24rem] overflow-auto">
           <table className="w-full text-right text-sm">
             <thead className="sticky top-0 bg-card">
               <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="p-3 font-medium">الصنف</th>
+                <th className="p-3 font-medium">الصنف / المنتج</th>
                 <th className="p-3 font-medium">القطع المباعة</th>
                 <th className="p-3 font-medium">عدد الفواتير</th>
                 <th className="p-3 font-medium">الإيراد</th>
@@ -726,26 +751,46 @@ function StockReport() {
               </tr>
             </thead>
             <tbody>
-              {productReport.length === 0 && (
+              {categoryReport.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
                     لا توجد مبيعات في هذه الفترة
                   </td>
                 </tr>
               )}
-              {productReport.map((p) => (
-                <tr
-                  key={p.id}
-                  onClick={() => setProductDetail({ id: p.id, name: p.name })}
-                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
-                >
-                  <td className="p-3 font-semibold">{p.name}</td>
-                  <td className="p-3 font-bold">{formatNumber(p.units)}</td>
-                  <td className="p-3 text-muted-foreground">{formatNumber(p.invoices.size)}</td>
-                  <td className="p-3 font-bold text-gold">{formatSDG(p.revenue)}</td>
-                  <td className="p-3 text-muted-foreground">{formatSDG(p.cost)}</td>
-                  <td className="p-3 font-bold">{formatSDG(p.revenue - p.cost)}</td>
-                </tr>
+              {categoryReport.map((c) => (
+                <Fragment key={c.name}>
+                  <tr
+                    onClick={() => setOpenCats((s) => ({ ...s, [c.name]: !s[c.name] }))}
+                    className="cursor-pointer border-b border-border/60 bg-secondary/30 hover:bg-secondary/60"
+                  >
+                    <td className="p-3 font-bold">
+                      <span className="ml-2 text-muted-foreground">{openCats[c.name] ? "▾" : "▸"}</span>
+                      {c.name}
+                      <span className="mr-2 text-xs text-muted-foreground">({c.items.length} منتج)</span>
+                    </td>
+                    <td className="p-3 font-bold">{formatNumber(c.units)}</td>
+                    <td className="p-3 text-muted-foreground">{formatNumber(c.invoices.size)}</td>
+                    <td className="p-3 font-bold text-gold">{formatSDG(c.revenue)}</td>
+                    <td className="p-3 text-muted-foreground">{formatSDG(c.cost)}</td>
+                    <td className="p-3 font-bold">{formatSDG(c.revenue - c.cost)}</td>
+                  </tr>
+                  {openCats[c.name] &&
+                    c.items.map((p) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => setProductDetail({ id: p.id, name: p.name })}
+                        className="cursor-pointer border-b border-border/60 hover:bg-secondary/50"
+                      >
+                        <td className="p-3 pr-8 font-semibold">{p.name}</td>
+                        <td className="p-3 font-bold">{formatNumber(p.units)}</td>
+                        <td className="p-3 text-muted-foreground">{formatNumber(p.invoices.size)}</td>
+                        <td className="p-3 font-bold text-gold">{formatSDG(p.revenue)}</td>
+                        <td className="p-3 text-muted-foreground">{formatSDG(p.cost)}</td>
+                        <td className="p-3 font-bold">{formatSDG(p.revenue - p.cost)}</td>
+                      </tr>
+                    ))}
+                </Fragment>
               ))}
             </tbody>
           </table>
