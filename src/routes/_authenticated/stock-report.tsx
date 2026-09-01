@@ -105,7 +105,6 @@ function StockReport() {
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
   const [repSearch, setRepSearch] = useState("");
   const [repCat, setRepCat] = useState("الكل");
-  const [openQty, setOpenQty] = useState<Record<string, boolean>>({});
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
