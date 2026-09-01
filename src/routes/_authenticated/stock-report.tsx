@@ -366,6 +366,8 @@ function StockReport() {
       .filter((c) => !q || c.products.length > 0);
   }, [qtyReport, search]);
 
+  // فواتير صنف محدد
+  const productInvoices = useMemo(() => {
     if (!productDetail) return [];
     const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
     return (movement?.items ?? [])
