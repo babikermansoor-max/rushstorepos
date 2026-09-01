@@ -224,13 +224,9 @@ function POS() {
         customer: customer || null,
 
         paymentMethod: method,
-        items: cart.map((l) => ({
-          name: l.discount > 0 ? `${l.name} (خصم ${l.discount}%)` : l.name,
-          qty: l.qty,
-          price: netPrice(l),
-        })),
-        total,
-        paid: paid ? Number(paid) : null,
+        items: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+        total: charged,
+        paid: charged,
       });
       setReceiptOpen(true);
 
