@@ -95,9 +95,9 @@ function POS() {
   
   const units = cart.reduce((s, l) => s + l.qty, 0);
 
-  // القيمة المكتوبة هي إجمالي الفاتورة الفعلي (لا تتجاوز مجموع الأسعار المعتمدة)
+  // القيمة المكتوبة هي إجمالي الفاتورة الفعلي بغض النظر عن سعر البيع المعتمد
   const typed = paidTouched && paid.trim() !== "" ? Number(paid) : total;
-  const charged = Number.isFinite(typed) && typed > 0 ? Math.min(typed, subtotal) : total;
+  const charged = Number.isFinite(typed) && typed > 0 ? typed : total;
   const chargedDiscount = subtotal - charged;
 
   // توزيع القيمة المكتوبة على أسطر الفاتورة بالتناسب
