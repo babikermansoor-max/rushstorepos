@@ -103,6 +103,7 @@ function StockReport() {
   });
   const [productDetail, setProductDetail] = useState<{ id: string; name: string } | null>(null);
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
+  const [openQty, setOpenQty] = useState<Record<string, boolean>>({});
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
@@ -325,6 +326,46 @@ function StockReport() {
     return [...map.values()].sort((a, b) => b.units - a.units);
   }, [productReport, products]);
 
+
+  // تقرير كميات الأصناف: المخزون الحالي والمباع خلال الفترة لكل صنف ومحتوياته
+  const qtyReport = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        name: string;
+        stock: number;
+        sold: number;
+        products: { id: string; name: string; barcode: string | null; stock: number; sold: number }[];
+      }
+    >();
+    const stk = stock ?? [];
+    for (const p of products ?? []) {
+      const catName = p.categories?.name ?? "بدون فئة";
+      const stockQty =
+        branch === "all"
+          ? stk.filter((s) => s.product_id === p.id).reduce((s2, r) => s2 + Number(r.quantity), 0)
+          : Number(stk.find((s) => s.product_id === p.id && s.branch_id === branch)?.quantity ?? 0);
+      const soldQty = soldByProduct.get(p.id) ?? 0;
+      const cur = map.get(catName) ?? { name: catName, stock: 0, sold: 0, products: [] };
+      cur.stock += stockQty;
+      cur.sold += soldQty;
+      cur.products.push({ id: p.id, name: p.name, barcode: p.barcode, stock: stockQty, sold: soldQty });
+      map.set(catName, cur);
+    }
+    return [...map.values()].sort((a, b) => b.sold - a.sold || b.stock - a.stock);
+  }, [products, stock, soldByProduct, branch]);
+
+  const qtyRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return qtyReport
+      .map((c) => ({
+        ...c,
+        products: c.products.filter(
+          (p) => !q || p.name.toLowerCase().includes(q) || (p.barcode ?? "").toLowerCase().includes(q),
+        ),
+      }))
+      .filter((c) => !q || c.products.length > 0);
+  }, [qtyReport, search]);
 
   // فواتير صنف محدد
   const productInvoices = useMemo(() => {
@@ -788,6 +829,71 @@ function StockReport() {
                         <td className="p-3 font-bold text-gold">{formatSDG(p.revenue)}</td>
                         <td className="p-3 text-muted-foreground">{formatSDG(p.cost)}</td>
                         <td className="p-3 font-bold">{formatSDG(p.revenue - p.cost)}</td>
+                      </tr>
+                    ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="surface mb-4 p-4">
+        <h2 className="font-bold">تقرير كميات الأصناف</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          الكمية الحالية في المخزن والكمية المباعة خلال الفترة لكل صنف ومحتوياته — اضغط على الفئة لعرض منتجاتها
+        </p>
+        <div className="max-h-[24rem] overflow-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="sticky top-0 bg-card">
+              <tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="p-3 font-medium">الصنف / المنتج</th>
+                <th className="p-3 font-medium">الكمية في المخزن</th>
+                <th className="p-3 font-medium">المباع بالفترة</th>
+                <th className="p-3 font-medium">المتبقي بعد البيع</th>
+              </tr>
+            </thead>
+            <tbody>
+              {qtyRows.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                    لا توجد منتجات
+                  </td>
+                </tr>
+              )}
+              {qtyRows.map((c) => (
+                <Fragment key={c.name}>
+                  <tr
+                    onClick={() => setOpenQty((s) => ({ ...s, [c.name]: !s[c.name] }))}
+                    className="cursor-pointer border-b border-border/60 bg-secondary/30 hover:bg-secondary/60"
+                  >
+                    <td className="p-3 font-bold">
+                      <span className="ml-2 text-muted-foreground">{openQty[c.name] ? "▾" : "▸"}</span>
+                      {c.name}
+                      <span className="mr-2 text-xs text-muted-foreground">({c.products.length} منتج)</span>
+                    </td>
+                    <td className="p-3 font-bold">{formatNumber(c.stock)}</td>
+                    <td className="p-3 font-bold">{formatNumber(c.sold)}</td>
+                    <td className="p-3 text-muted-foreground">{formatNumber(c.stock - c.sold)}</td>
+                  </tr>
+                  {openQty[c.name] &&
+                    c.products.map((p) => (
+                      <tr
+                        key={p.id}
+                        onClick={() => setProductDetail({ id: p.id, name: p.name })}
+                        className="cursor-pointer border-b border-border/60 hover:bg-secondary/50"
+                      >
+                        <td className="p-3 pr-8 font-semibold">
+                          {p.name}
+                          {p.barcode && (
+                            <span className="mr-2 text-xs font-normal text-muted-foreground" dir="ltr">
+                              {p.barcode}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 font-bold">{formatNumber(p.stock)}</td>
+                        <td className="p-3">{formatNumber(p.sold)}</td>
+                        <td className="p-3 text-muted-foreground">{formatNumber(p.stock - p.sold)}</td>
                       </tr>
                     ))}
                 </Fragment>
