@@ -31,10 +31,31 @@ function Returns() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ product_id: "", quantity: "1", amount: "", reason: "" });
 
+  const [barcode, setBarcode] = useState("");
+
   const { data: products } = useQuery({
     queryKey: ["products-basic"],
-    queryFn: async () => (await supabase.from("products").select("id, name, sale_price").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("products").select("id, name, sale_price, barcode").order("name")).data ?? [],
   });
+
+  function scanBarcode(code: string) {
+    const v = code.trim();
+    if (!v) return;
+    const found = (products ?? []).find((p) => (p.barcode ?? "").trim() === v);
+    if (!found) {
+      toast.error("لا يوجد منتج بهذا الباركود");
+      return;
+    }
+    setForm((f) => {
+      const same = f.product_id === found.id;
+      const qty = same ? Math.floor(Number(f.quantity || 1)) + 1 : 1;
+      return { ...f, product_id: found.id, quantity: String(qty), amount: String(Number(found.sale_price) * qty) };
+    });
+    setBarcode("");
+    toast.success(`تمت إضافة ${found.name}`);
+  }
+
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
