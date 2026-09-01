@@ -328,6 +328,38 @@ function StockReport() {
     return [...map.values()].sort((a, b) => b.units - a.units);
   }, [productReport, products]);
 
+  // أسعار الشراء والبيع لكل منتج
+  const priceOf = (id: string) => {
+    const p = (products ?? []).find((x) => x.id === id);
+    return { cost: Number(p?.cost_price ?? 0), sale: Number(p?.sale_price ?? 0) };
+  };
+
+  // فئات تقرير الأصناف + البحث
+  const reportCatNames = useMemo(
+    () => ["الكل", ...categoryReport.map((c) => c.name)],
+    [categoryReport],
+  );
+
+  const filteredCategoryReport = useMemo(() => {
+    const q = repSearch.trim().toLowerCase();
+    return categoryReport
+      .filter((c) => repCat === "الكل" || c.name === repCat)
+      .map((c) => ({
+        ...c,
+        items: q
+          ? c.items.filter((p) => {
+              const prod = (products ?? []).find((x) => x.id === p.id);
+              return (
+                p.name.toLowerCase().includes(q) ||
+                (prod?.barcode ?? "").toLowerCase().includes(q)
+              );
+            })
+          : c.items,
+      }))
+      .filter((c) => c.items.length > 0);
+  }, [categoryReport, repCat, repSearch, products]);
+
+
 
   // تقرير كميات الأصناف: المخزون الحالي والمباع خلال الفترة لكل صنف ومحتوياته
   const qtyReport = useMemo(() => {
