@@ -437,49 +437,42 @@ function POS() {
                 setPaid(e.target.value);
               }}
               inputMode="decimal"
-              placeholder={method === "cash" ? "المبلغ المدفوع" : "قيمة التحويل (بنكك)"}
+              placeholder={method === "cash" ? "قيمة المعاملة (نقدي)" : "قيمة التحويل (بنكك)"}
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {paidTouched ? (
-                Number(paid) >= total ? (
-                  method === "cash" ? (
-                    <>
-                      الباقي للعميل:{" "}
-                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
-                    </>
-                  ) : (
-                    <>
-                      الزيادة في التحويل:{" "}
-                      <span className="font-bold text-gold">{formatSDG(Number(paid) - total)}</span>
-                    </>
-                  )
+              {paidTouched && paid.trim() !== "" ? (
+                Number(paid) > subtotal ? (
+                  <span className="text-destructive">
+                    القيمة أعلى من مجموع الأسعار المعتمدة — سيتم التسجيل بـ {formatSDG(subtotal)}
+                  </span>
                 ) : (
-                  <span className="text-destructive">المتبقي على العميل: {formatSDG(total - Number(paid || 0))}</span>
+                  <>
+                    سيتم تسجيل المعاملة بقيمة{" "}
+                    <span className="font-bold text-gold">{formatSDG(charged)}</span>
+                  </>
                 )
-              ) : method === "cash" ? (
-                "المبلغ المدفوع = مبلغ البيع تلقائياً"
               ) : (
-                "قيمة التحويل = مبلغ البيع تلقائياً، ويمكن تعديلها"
+                "القيمة المكتوبة هي إجمالي الفاتورة المسجّل"
               )}
             </p>
           </div>
 
-          {discountAmount > 0 && (
+          {chargedDiscount > 0 && (
             <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">قبل التخفيض</span>
               <span className="line-through text-muted-foreground">{formatSDG(subtotal)}</span>
             </div>
           )}
-          {discountAmount > 0 && (
+          {chargedDiscount > 0 && (
             <div className="flex items-center justify-between pt-1 text-sm">
               <span className="text-muted-foreground">قيمة التخفيض</span>
-              <span className="font-bold text-destructive">-{formatSDG(discountAmount)}</span>
+              <span className="font-bold text-destructive">-{formatSDG(chargedDiscount)}</span>
             </div>
           )}
 
           <div className="flex items-center justify-between border-t border-border py-3">
             <span className="text-sm text-muted-foreground">الإجمالي</span>
-            <span className="text-2xl font-extrabold">{formatSDG(total)}</span>
+            <span className="text-2xl font-extrabold">{formatSDG(charged)}</span>
           </div>
 
           <Button onClick={checkout} disabled={!cart.length || busy} className="w-full py-6 text-base font-bold">
