@@ -326,8 +326,46 @@ function StockReport() {
   }, [productReport, products]);
 
 
-  // فواتير صنف محدد
-  const productInvoices = useMemo(() => {
+  // تقرير كميات الأصناف: المخزون الحالي والمباع خلال الفترة لكل صنف ومحتوياته
+  const qtyReport = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        name: string;
+        stock: number;
+        sold: number;
+        products: { id: string; name: string; barcode: string | null; stock: number; sold: number }[];
+      }
+    >();
+    const stk = stock ?? [];
+    for (const p of products ?? []) {
+      const catName = p.categories?.name ?? "بدون فئة";
+      const stockQty =
+        branch === "all"
+          ? stk.filter((s) => s.product_id === p.id).reduce((s2, r) => s2 + Number(r.quantity), 0)
+          : Number(stk.find((s) => s.product_id === p.id && s.branch_id === branch)?.quantity ?? 0);
+      const soldQty = soldByProduct.get(p.id) ?? 0;
+      const cur = map.get(catName) ?? { name: catName, stock: 0, sold: 0, products: [] };
+      cur.stock += stockQty;
+      cur.sold += soldQty;
+      cur.products.push({ id: p.id, name: p.name, barcode: p.barcode, stock: stockQty, sold: soldQty });
+      map.set(catName, cur);
+    }
+    return [...map.values()].sort((a, b) => b.sold - a.sold || b.stock - a.stock);
+  }, [products, stock, soldByProduct, branch]);
+
+  const qtyRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return qtyReport
+      .map((c) => ({
+        ...c,
+        products: c.products.filter(
+          (p) => !q || p.name.toLowerCase().includes(q) || (p.barcode ?? "").toLowerCase().includes(q),
+        ),
+      }))
+      .filter((c) => !q || c.products.length > 0);
+  }, [qtyReport, search]);
+
     if (!productDetail) return [];
     const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
     return (movement?.items ?? [])
