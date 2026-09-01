@@ -107,6 +107,7 @@ function Returns() {
     toast.success("تم تسجيل المرتجع وإرجاع الكمية للمخزون");
     setOpen(false);
     setForm({ product_id: "", quantity: "1", amount: "", reason: "" });
+    setBarcode("");
     queryClient.invalidateQueries();
   }
 
