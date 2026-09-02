@@ -831,7 +831,37 @@ function StockReport() {
           ))}
         </div>
 
-        <div className="max-h-[24rem] overflow-auto">
+        {(() => {
+          const catCount = filteredCategoryReport.length;
+          const prodCount = filteredCategoryReport.reduce((s, c) => s + c.items.length, 0);
+          const totalCost = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.cost, 0),
+            0,
+          );
+          const totalRevenue = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.revenue, 0),
+            0,
+          );
+          const cards = [
+            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "bg-secondary/50 text-foreground" },
+            { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "bg-secondary/50 text-foreground" },
+            { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "bg-destructive/10 text-destructive" },
+            { label: "قيمة المباع", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
+            { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "bg-success/10 text-success" },
+          ];
+          return (
+            <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+              {cards.map((c) => (
+                <div key={c.label} className={`rounded-xl border border-border p-3 ${c.tone}`}>
+                  <p className="text-[11px] opacity-80">{c.label}</p>
+                  <p className="mt-1 text-lg font-extrabold">{c.value}</p>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        <div className="max-h-[32rem] overflow-auto">
           <table className="w-full text-right text-sm">
             <thead className="sticky top-0 bg-card">
               <tr className="border-b border-border text-xs text-muted-foreground">

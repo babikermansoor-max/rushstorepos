@@ -30,10 +30,11 @@ function applyPaper(paper: Paper) {
     el.id = "receipt-page-style";
     document.head.appendChild(el);
   }
+  // Xprinter POS-80: صفحة 80mm × 3276mm (أقصى طول مدعوم) — 58mm تستخدم 3276mm أيضاً
   el.textContent =
     paper === "auto"
       ? `@media print { @page { size: auto; margin: 0; } }`
-      : `@media print { @page { size: ${paper}mm auto; margin: 0; } }`;
+      : `@media print { @page { size: ${paper}mm 3276mm; margin: 0; } }`;
 }
 
 
