@@ -181,10 +181,10 @@
     print-color-adjust: exact;
   }
 
-  /* Receipt fills the whole printable width, flowing from the top of the page */
+  /* Receipt fills the whole printable width, flowing from the very top of the page */
   #receipt-print {
     position: absolute !important;
-    top: 0;
+    top: 0 !important;
     left: 0;
     right: 0;
     width: 100% !important;
@@ -192,7 +192,7 @@
     margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
-    padding: 2mm 3mm 8mm !important;
+    padding: 0 3mm 6mm !important;
     color: #000;
     background: #fff;
     font-size: 12.5px;
@@ -214,12 +214,18 @@
 
   html[data-paper="58"] #receipt-print {
     font-size: 11px;
-    padding: 2mm 2mm 8mm !important;
+    padding: 0 2mm 6mm !important;
   }
 
   html[data-paper="auto"] #receipt-print {
     font-size: 13px;
-    padding: 3mm 4mm 10mm !important;
+    padding: 0 4mm 8mm !important;
+  }
+
+  /* First element must start flush with the paper top */
+  #receipt-print > *:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   #receipt-print .receipt-logo-screen {
