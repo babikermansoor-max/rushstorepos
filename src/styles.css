@@ -149,8 +149,9 @@
 
 /* Thermal printer profile: Xprinter 80mm (72mm printable) / 58mm (48mm) */
 @media print {
+  /* Xprinter POS-80: عرض 80mm وأقصى طول 3276mm */
   @page {
-    size: 80mm auto;
+    size: 80mm 3276mm;
     margin: 0;
   }
 
