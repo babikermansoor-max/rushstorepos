@@ -330,6 +330,8 @@ function StockReport() {
       invoices: Set<string>;
     };
     const map = new Map<string, { name: string; items: Item[] }>();
+    // كل الأصناف المسجلة في النظام تظهر حتى لو بلا منتجات
+    for (const c of categories ?? []) map.set(c.name, { name: c.name, items: [] });
     const push = (catName: string, item: Item) => {
       const cur = map.get(catName) ?? { name: catName, items: [] };
       cur.items.push(item);
