@@ -330,6 +330,8 @@ function StockReport() {
       invoices: Set<string>;
     };
     const map = new Map<string, { name: string; items: Item[] }>();
+    // كل الأصناف المسجلة في النظام تظهر حتى لو بلا منتجات
+    for (const c of categories ?? []) map.set(c.name, { name: c.name, items: [] });
     const push = (catName: string, item: Item) => {
       const cur = map.get(catName) ?? { name: catName, items: [] };
       cur.items.push(item);
@@ -370,7 +372,7 @@ function StockReport() {
         items: c.items.sort((a, b) => b.units - a.units || a.name.localeCompare(b.name, "ar")),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [productReport, products, stock, branch]);
+  }, [productReport, products, stock, branch, categories]);
 
   // فئات تقرير الأصناف + البحث
   const reportCatNames = useMemo(
@@ -391,7 +393,7 @@ function StockReport() {
             )
           : c.items,
       }))
-      .filter((c) => c.items.length > 0);
+      .filter((c) => !q || c.items.length > 0);
   }, [categoryReport, repCat, repSearch]);
 
 
