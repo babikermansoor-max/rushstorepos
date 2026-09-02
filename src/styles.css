@@ -157,36 +157,41 @@
 
   html,
   body {
-    width: 100% !important;
+    width: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    overflow: visible !important;
   }
 
-  body * {
-    visibility: hidden;
-    box-shadow: none !important;
-    text-shadow: none !important;
+  /* Hide every element that is not the receipt or one of its wrappers */
+  body :not(:has(#receipt-print)):not(#receipt-print):not(#receipt-print *) {
+    display: none !important;
   }
 
-  #receipt-print,
-  #receipt-print * {
-    visibility: visible;
-    color: #000 !important;
+  /* Flatten every wrapper between <body> and the receipt so it flows
+     from the very top of the paper (no offset, no transforms, no clipping) */
+  body :has(#receipt-print):not(#receipt-print) {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    rotate: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     background: transparent !important;
-    border-color: #000 !important;
-    font-family: "Cairo", "Tahoma", system-ui, sans-serif !important;
-    letter-spacing: 0 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    box-shadow: none !important;
   }
 
-  /* Receipt fills the whole printable width, flowing from the very top of the page */
   #receipt-print {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0;
-    right: 0;
+    position: static !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -198,6 +203,19 @@
     font-size: 12.5px;
     font-weight: 600;
     line-height: 1.45;
+    box-shadow: none !important;
+  }
+
+  #receipt-print * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    font-family: "Cairo", "Tahoma", system-ui, sans-serif !important;
+    letter-spacing: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   #receipt-print table {
@@ -234,7 +252,6 @@
 
   #receipt-print .receipt-logo-print {
     display: block !important;
-    visibility: visible !important;
     margin: 3mm auto 0 !important;
     width: 32mm;
     max-width: 60%;
