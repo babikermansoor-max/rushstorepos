@@ -185,16 +185,16 @@
     overflow: hidden !important;
   }
 
-  /* 80mm roll => 72mm printable area, centered */
+  /* Full printable width, edge-to-edge like a printer test page */
   #receipt-print {
     position: static !important;
     box-sizing: border-box !important;
-    width: 72mm !important;
-    max-width: 72mm !important;
-    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
-    padding: 0 1mm 6mm !important;
+    padding: 0 2mm 6mm !important;
     color: #000;
     background: #fff;
     font-size: 20px;
@@ -203,6 +203,7 @@
     box-shadow: none !important;
     overflow-wrap: anywhere;
   }
+
 
 
   #receipt-print * {
@@ -254,15 +255,13 @@
     max-width: 58mm !important;
   }
 
-  /* 58mm roll => 48mm printable area */
   html[data-paper="58"] #receipt-print {
-    width: 48mm !important;
-    max-width: 48mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
     font-size: 16px;
-    padding: 0 1mm 6mm !important;
+    padding: 0 1.5mm 6mm !important;
   }
 
-  /* 72mm roll: full-width page, content fills the printable area */
   html[data-paper="72"] #receipt-print-root,
   html[data-paper="72"] html,
   html[data-paper="72"] body {
@@ -271,10 +270,10 @@
   }
 
   html[data-paper="72"] #receipt-print {
-    width: 72mm !important;
-    max-width: 72mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
     font-size: 20px;
-    padding: 0 1mm 6mm !important;
+    padding: 0 2mm 6mm !important;
   }
 
   html[data-paper="auto"] #receipt-print-root,
@@ -288,8 +287,9 @@
     width: 100% !important;
     max-width: 100% !important;
     font-size: 20px;
-    padding: 0 3mm 8mm !important;
+    padding: 0 2mm 6mm !important;
   }
+
 
 
 
