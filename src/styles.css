@@ -185,23 +185,25 @@
     overflow: hidden !important;
   }
 
+  /* 80mm roll => 72mm printable area, centered */
   #receipt-print {
     position: static !important;
     box-sizing: border-box !important;
-    width: 80mm !important;
-    max-width: 80mm !important;
-    margin: 0 !important;
+    width: 72mm !important;
+    max-width: 72mm !important;
+    margin: 0 auto !important;
     border: 0 !important;
     border-radius: 0 !important;
-    padding: 0 4mm 6mm !important;
+    padding: 0 1mm 6mm !important;
     color: #000;
     background: #fff;
     font-size: 20px;
     font-weight: 600;
-    line-height: 1.45;
+    line-height: 1.4;
     box-shadow: none !important;
     overflow-wrap: anywhere;
   }
+
 
   #receipt-print * {
     color: #000 !important;
