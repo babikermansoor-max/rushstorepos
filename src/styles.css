@@ -161,7 +161,8 @@
 
   html,
   body {
-    width: auto !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -177,25 +178,29 @@
   #receipt-print-root {
     display: block !important;
     position: static !important;
-    width: 100% !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
   }
 
   #receipt-print {
     position: static !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    box-sizing: border-box !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
-    padding: 0 3mm 6mm !important;
+    padding: 0 4mm 6mm !important;
     color: #000;
     background: #fff;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.45;
     box-shadow: none !important;
+    overflow-wrap: anywhere;
   }
 
   #receipt-print * {
@@ -206,15 +211,33 @@
     text-shadow: none !important;
     font-family: "Cairo", "Tahoma", system-ui, sans-serif !important;
     letter-spacing: 0 !important;
+    max-width: 100% !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   #receipt-print table {
-    width: 100%;
+    width: 100% !important;
     border-collapse: collapse;
     table-layout: fixed;
     word-break: break-word;
+  }
+
+  #receipt-print th:nth-child(1),
+  #receipt-print td:nth-child(1) {
+    width: 48%;
+  }
+
+  #receipt-print th:nth-child(2),
+  #receipt-print td:nth-child(2) {
+    width: 16%;
+    text-align: center;
+  }
+
+  #receipt-print th:nth-child(3),
+  #receipt-print td:nth-child(3) {
+    width: 36%;
+    text-align: left;
   }
 
   #receipt-print th,
@@ -222,15 +245,32 @@
     padding: 1mm 0 !important;
   }
 
+  html[data-paper="58"] #receipt-print,
+  html[data-paper="58"] #receipt-print-root,
+  html[data-paper="58"] html,
+  html[data-paper="58"] body {
+    width: 58mm !important;
+    max-width: 58mm !important;
+  }
+
   html[data-paper="58"] #receipt-print {
-    font-size: 11px;
-    padding: 0 2mm 6mm !important;
+    font-size: 10.5px;
+    padding: 0 3mm 6mm !important;
+  }
+
+  html[data-paper="auto"] #receipt-print,
+  html[data-paper="auto"] #receipt-print-root,
+  html[data-paper="auto"] html,
+  html[data-paper="auto"] body {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   html[data-paper="auto"] #receipt-print {
-    font-size: 13px;
+    font-size: 12.5px;
     padding: 0 4mm 8mm !important;
   }
+
 
   /* First element must start flush with the paper top */
   #receipt-print > *:first-child {
