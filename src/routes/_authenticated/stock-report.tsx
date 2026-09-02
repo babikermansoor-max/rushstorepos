@@ -372,7 +372,7 @@ function StockReport() {
         items: c.items.sort((a, b) => b.units - a.units || a.name.localeCompare(b.name, "ar")),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [productReport, products, stock, branch]);
+  }, [productReport, products, stock, branch, categories]);
 
   // فئات تقرير الأصناف + البحث
   const reportCatNames = useMemo(
