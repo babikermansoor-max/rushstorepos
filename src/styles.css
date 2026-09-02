@@ -247,7 +247,6 @@
     padding: 1mm 0 !important;
   }
 
-  html[data-paper="58"] #receipt-print,
   html[data-paper="58"] #receipt-print-root,
   html[data-paper="58"] html,
   html[data-paper="58"] body {
@@ -255,12 +254,14 @@
     max-width: 58mm !important;
   }
 
+  /* 58mm roll => 48mm printable area */
   html[data-paper="58"] #receipt-print {
-    font-size: 17px;
-    padding: 0 3mm 6mm !important;
+    width: 48mm !important;
+    max-width: 48mm !important;
+    font-size: 16px;
+    padding: 0 1mm 6mm !important;
   }
 
-  html[data-paper="auto"] #receipt-print,
   html[data-paper="auto"] #receipt-print-root,
   html[data-paper="auto"] html,
   html[data-paper="auto"] body {
@@ -269,9 +270,12 @@
   }
 
   html[data-paper="auto"] #receipt-print {
+    width: 100% !important;
+    max-width: 100% !important;
     font-size: 20px;
-    padding: 0 4mm 8mm !important;
+    padding: 0 3mm 8mm !important;
   }
+
 
 
   /* First element must start flush with the paper top */
