@@ -845,8 +845,8 @@ function StockReport() {
             0,
           );
           const cards = [
-            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "bg-secondary/50 text-foreground" },
-            { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "bg-secondary/50 text-foreground" },
+            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "bg-primary text-primary-foreground" },
+            { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "bg-secondary text-secondary-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "bg-destructive/10 text-destructive" },
             { label: "قيمة المباع", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
             { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "bg-success/10 text-success" },
@@ -895,7 +895,7 @@ function StockReport() {
                 <Fragment key={c.name}>
                   <tr
                     onClick={() => setOpenCats((s) => ({ ...s, [c.name]: !s[c.name] }))}
-                    className="cursor-pointer border-b border-border/60 bg-secondary/30 hover:bg-secondary/60"
+                    className="cursor-pointer border-b border-border/60 bg-primary/10 hover:bg-primary/20"
                   >
                     <td className="p-3 font-bold">
                       <span className="ml-2 text-muted-foreground">{expanded ? "▾" : "▸"}</span>
