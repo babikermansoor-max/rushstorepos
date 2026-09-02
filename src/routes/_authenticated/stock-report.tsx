@@ -393,7 +393,7 @@ function StockReport() {
             )
           : c.items,
       }))
-      .filter((c) => c.items.length > 0);
+      .filter((c) => !q || c.items.length > 0);
   }, [categoryReport, repCat, repSearch]);
 
 
