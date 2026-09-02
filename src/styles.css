@@ -262,6 +262,21 @@
     padding: 0 1mm 6mm !important;
   }
 
+  /* 72mm roll: full-width page, content fills the printable area */
+  html[data-paper="72"] #receipt-print-root,
+  html[data-paper="72"] html,
+  html[data-paper="72"] body {
+    width: 72mm !important;
+    max-width: 72mm !important;
+  }
+
+  html[data-paper="72"] #receipt-print {
+    width: 72mm !important;
+    max-width: 72mm !important;
+    font-size: 20px;
+    padding: 0 1mm 6mm !important;
+  }
+
   html[data-paper="auto"] #receipt-print-root,
   html[data-paper="auto"] html,
   html[data-paper="auto"] body {

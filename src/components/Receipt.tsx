@@ -21,7 +21,7 @@ export type ReceiptData = {
 
 const PAPER_KEY = "rush_paper_width";
 
-type Paper = "58" | "80" | "auto";
+type Paper = "58" | "72" | "80" | "auto";
 
 function applyPaper(paper: Paper) {
   document.documentElement.setAttribute("data-paper", paper);
