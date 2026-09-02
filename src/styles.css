@@ -196,7 +196,7 @@
     padding: 0 4mm 6mm !important;
     color: #000;
     background: #fff;
-    font-size: 12px;
+    font-size: 20px;
     font-weight: 600;
     line-height: 1.45;
     box-shadow: none !important;
@@ -254,7 +254,7 @@
   }
 
   html[data-paper="58"] #receipt-print {
-    font-size: 10.5px;
+    font-size: 17px;
     padding: 0 3mm 6mm !important;
   }
 
@@ -267,7 +267,7 @@
   }
 
   html[data-paper="auto"] #receipt-print {
-    font-size: 12.5px;
+    font-size: 20px;
     padding: 0 4mm 8mm !important;
   }
 
