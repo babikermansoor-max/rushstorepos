@@ -21,7 +21,7 @@ export type ReceiptData = {
 
 const PAPER_KEY = "rush_paper_width";
 
-type Paper = "58" | "80" | "auto";
+type Paper = "58" | "72" | "80" | "auto";
 
 function applyPaper(paper: Paper) {
   document.documentElement.setAttribute("data-paper", paper);
@@ -151,7 +151,7 @@ export function ReceiptDialog({
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem(PAPER_KEY);
-    if (saved === "58" || saved === "80" || saved === "auto") setPaper(saved);
+    if (saved === "58" || saved === "72" || saved === "80" || saved === "auto") setPaper(saved);
   }, []);
 
   useEffect(() => {
@@ -198,7 +198,7 @@ export function ReceiptDialog({
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>مقاس الورق:</span>
-            {(["58", "80", "auto"] as const).map((w) => (
+            {(["58", "72", "80", "auto"] as const).map((w) => (
               <button
                 key={w}
                 type="button"
