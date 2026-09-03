@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
+import { ExchangeRateDialog, useAedRate, aedToSdg } from "@/components/ExchangeRate";
 
 export const Route = createFileRoute("/_authenticated/stock-report")({
   head: () => ({
@@ -32,6 +33,7 @@ type Product = {
   name: string;
   barcode: string | null;
   cost_price: number;
+  cost_price_aed: number;
   sale_price: number;
   category_id: string | null;
   categories: { name: string } | null;
@@ -85,6 +87,7 @@ function StockReport() {
     name: "",
     barcode: "",
     category_id: "",
+    cost_price_aed: "",
     cost_price: "",
     sale_price: "",
     quantity: "",
@@ -97,6 +100,7 @@ function StockReport() {
     name: "",
     barcode: "",
     category_id: "",
+    cost_price_aed: "",
     cost_price: "",
     sale_price: "",
     quantity: "",
@@ -105,6 +109,8 @@ function StockReport() {
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
   const [repSearch, setRepSearch] = useState("");
   const [repCat, setRepCat] = useState("الكل");
+  const { data: rateInfo } = useAedRate();
+  const aedRate = rateInfo?.rate ?? 0;
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
 
@@ -124,7 +130,7 @@ function StockReport() {
       ((
         await supabase
           .from("products")
-          .select("id, name, barcode, cost_price, sale_price, category_id, categories(name)")
+          .select("id, name, barcode, cost_price, cost_price_aed, sale_price, category_id, categories(name)")
           .eq("is_active", true)
           .order("name")
       ).data ?? []) as unknown as Product[],
@@ -420,7 +426,8 @@ function StockReport() {
   async function addProduct(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const cost = Number(form.cost_price || 0);
+      const aed = Number(form.cost_price_aed || 0);
+      const cost = aed > 0 && aedRate > 0 ? aedToSdg(aed, aedRate) : Number(form.cost_price || 0);
       const price = Number(form.sale_price || 0);
       if (price <= 0) throw new Error("أدخل سعر بيع صحيح");
       if (price < cost) throw new Error("سعر البيع أقل من سعر الشراء");
@@ -430,6 +437,7 @@ function StockReport() {
           name: form.name.trim(),
           barcode: form.barcode.trim() || null,
           category_id: form.category_id || null,
+          cost_price_aed: aed,
           cost_price: cost,
           sale_price: price,
         })
@@ -449,7 +457,7 @@ function StockReport() {
       }
       toast.success("تمت إضافة المنتج");
       setProductOpen(false);
-      setForm({ name: "", barcode: "", category_id: "", cost_price: "", sale_price: "", quantity: "", branch_id: "" });
+      setForm({ name: "", barcode: "", category_id: "", cost_price_aed: "", cost_price: "", sale_price: "", quantity: "", branch_id: "" });
       queryClient.invalidateQueries();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "تعذّرت الإضافة");
@@ -462,6 +470,7 @@ function StockReport() {
       name: row.product.name,
       barcode: row.product.barcode ?? "",
       category_id: row.product.category_id ?? "",
+      cost_price_aed: row.product.cost_price_aed ? String(row.product.cost_price_aed) : "",
       cost_price: String(row.product.cost_price ?? ""),
       sale_price: String(row.product.sale_price ?? ""),
       quantity: String(row.quantity),
@@ -471,7 +480,8 @@ function StockReport() {
   async function saveProduct(e: React.FormEvent) {
     e.preventDefault();
     if (!editRow) return;
-    const cost = Number(editForm.cost_price || 0);
+    const editAed = Number(editForm.cost_price_aed || 0);
+    const cost = editAed > 0 && aedRate > 0 ? aedToSdg(editAed, aedRate) : Number(editForm.cost_price || 0);
     const price = Number(editForm.sale_price || 0);
     if (!editForm.name.trim()) {
       toast.error("أدخل اسم المنتج");
@@ -497,6 +507,7 @@ function StockReport() {
         name: editForm.name.trim(),
         barcode: editForm.barcode.trim() || null,
         category_id: editForm.category_id || null,
+        cost_price_aed: editAed,
         cost_price: cost,
         sale_price: price,
       })
@@ -574,6 +585,7 @@ function StockReport() {
             </Button>
             {me?.isAdmin && (
               <>
+                <ExchangeRateDialog />
                 <Dialog open={productOpen} onOpenChange={setProductOpen}>
                   <DialogTrigger asChild>
                     <Button className="gap-2">
@@ -613,7 +625,28 @@ function StockReport() {
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                          <Label>سعر الشراء</Label>
+                          <Label>سعر الشراء بالدرهم</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.cost_price_aed}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                cost_price_aed: e.target.value,
+                                cost_price:
+                                  Number(e.target.value) > 0 && aedRate > 0
+                                    ? String(aedToSdg(Number(e.target.value), aedRate))
+                                    : form.cost_price,
+                              })
+                            }
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            {aedRate > 0 ? `سعر الصرف: ${aedRate} ج.س/درهم` : "حدّد سعر الصرف أولاً"}
+                          </p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>سعر الشراء بالجنيه</Label>
                           <Input
                             type="number"
                             value={form.cost_price}
@@ -1118,7 +1151,28 @@ function StockReport() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>سعر الشراء</Label>
+                <Label>سعر الشراء بالدرهم</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editForm.cost_price_aed}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      cost_price_aed: e.target.value,
+                      cost_price:
+                        Number(e.target.value) > 0 && aedRate > 0
+                          ? String(aedToSdg(Number(e.target.value), aedRate))
+                          : editForm.cost_price,
+                    })
+                  }
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {aedRate > 0 ? `سعر الصرف: ${aedRate} ج.س/درهم` : "حدّد سعر الصرف أولاً"}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>سعر الشراء بالجنيه</Label>
                 <Input
                   type="number"
                   value={editForm.cost_price}
