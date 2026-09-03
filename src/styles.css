@@ -279,9 +279,16 @@
     height: 13mm;
     margin: 0 auto;
     overflow: visible;
+    background: #fff !important;
   }
 
-  #receipt-print .receipt-barcode rect {
+  /* JsBarcode creates one full-size background rect before the bar group. */
+  #receipt-print .receipt-barcode > rect {
+    fill: #fff !important;
+  }
+
+  #receipt-print .receipt-barcode > g,
+  #receipt-print .receipt-barcode > g rect {
     fill: #000 !important;
   }
 }
