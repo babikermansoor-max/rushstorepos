@@ -437,9 +437,10 @@ function StockReport() {
           name: form.name.trim(),
           barcode: form.barcode.trim() || null,
           category_id: form.category_id || null,
-          cost_price_aed: aed,
+          cost_price_aed: aed > 0 ? aed : aedRate > 0 ? Math.round((cost / aedRate) * 10000) / 10000 : 0,
           cost_price: cost,
           sale_price: price,
+          sale_price_aed: aedRate > 0 ? Math.round((price / aedRate) * 10000) / 10000 : 0,
         })
         .select("id")
         .single();
@@ -507,9 +508,10 @@ function StockReport() {
         name: editForm.name.trim(),
         barcode: editForm.barcode.trim() || null,
         category_id: editForm.category_id || null,
-        cost_price_aed: editAed,
+        cost_price_aed: editAed > 0 ? editAed : aedRate > 0 ? Math.round((cost / aedRate) * 10000) / 10000 : 0,
         cost_price: cost,
         sale_price: price,
+        sale_price_aed: aedRate > 0 ? Math.round((price / aedRate) * 10000) / 10000 : 0,
       })
       .eq("id", editRow.product.id);
     if (error) {

@@ -135,6 +135,7 @@ export type Database = {
           is_active: boolean
           name: string
           sale_price: number
+          sale_price_aed: number
         }
         Insert: {
           barcode?: string | null
@@ -146,6 +147,7 @@ export type Database = {
           is_active?: boolean
           name: string
           sale_price?: number
+          sale_price_aed?: number
         }
         Update: {
           barcode?: string | null
@@ -157,6 +159,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           sale_price?: number
+          sale_price_aed?: number
         }
         Relationships: [
           {
