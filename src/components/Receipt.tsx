@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Printer, Check } from "lucide-react";
+import JsBarcode from "jsbarcode";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatSDG, PAYMENT_LABELS } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,6 +33,30 @@ function applyThermalPage() {
 }
 
 
+function InvoiceBarcode({ value }: { value: string }) {
+  const ref = useRef<SVGSVGElement | null>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    try {
+      JsBarcode(ref.current, value, {
+        format: "CODE128",
+        width: 2,
+        height: 56,
+        displayValue: true,
+        textMargin: 1,
+        fontSize: 18,
+        font: "monospace",
+        margin: 0,
+        background: "transparent",
+        lineColor: "#000",
+      });
+    } catch {
+      /* invalid barcode value — skip silently */
+    }
+  }, [value]);
+  return <svg ref={ref} className="receipt-barcode" />;
+}
+
 function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boolean }) {
   const change = data.paid != null ? data.paid - data.total : null;
   return (
@@ -54,6 +79,11 @@ function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boole
           <span>رقم الفاتورة</span>
           <span className="font-bold text-foreground">#{data.invoiceNo}</span>
         </div>
+        {printMode && (
+          <div className="receipt-barcode-wrap">
+            <InvoiceBarcode value={String(data.invoiceNo)} />
+          </div>
+        )}
         <div className="flex justify-between">
           <span>التاريخ</span>
           <span>{formatDateTime(data.createdAt)}</span>
