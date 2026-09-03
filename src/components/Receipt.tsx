@@ -138,20 +138,14 @@ export function ReceiptDialog({
   onOpenChange: (v: boolean) => void;
   autoPrint?: boolean;
 }) {
-  const [paper, setPaper] = useState<Paper>("80");
   const [printLogoReady, setPrintLogoReady] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem(PAPER_KEY);
-    if (saved === "58" || saved === "72" || saved === "80" || saved === "auto") setPaper(saved);
+    applyThermalPage();
   }, []);
 
-  useEffect(() => {
-    applyPaper(paper);
-    localStorage.setItem(PAPER_KEY, paper);
-  }, [paper]);
 
   // Preload the print logo so the thermal-receipt image is cached before printing.
   useEffect(() => {
