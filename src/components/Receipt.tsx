@@ -33,6 +33,30 @@ function applyThermalPage() {
 }
 
 
+function InvoiceBarcode({ value }: { value: string }) {
+  const ref = useRef<SVGSVGElement | null>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    try {
+      JsBarcode(ref.current, value, {
+        format: "CODE128",
+        width: 2,
+        height: 56,
+        displayValue: true,
+        textMargin: 1,
+        fontSize: 18,
+        font: "monospace",
+        margin: 0,
+        background: "transparent",
+        lineColor: "#000",
+      });
+    } catch {
+      /* invalid barcode value — skip silently */
+    }
+  }, [value]);
+  return <svg ref={ref} className="receipt-barcode" />;
+}
+
 function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boolean }) {
   const change = data.paid != null ? data.paid - data.total : null;
   return (
