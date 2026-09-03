@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          aed_rate: number
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aed_rate?: number
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aed_rate?: number
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           created_at: string
@@ -108,6 +129,7 @@ export type Database = {
           barcode: string | null
           category_id: string | null
           cost_price: number
+          cost_price_aed: number
           created_at: string
           id: string
           is_active: boolean
@@ -118,6 +140,7 @@ export type Database = {
           barcode?: string | null
           category_id?: string | null
           cost_price?: number
+          cost_price_aed?: number
           created_at?: string
           id?: string
           is_active?: boolean
@@ -128,6 +151,7 @@ export type Database = {
           barcode?: string | null
           category_id?: string | null
           cost_price?: number
+          cost_price_aed?: number
           created_at?: string
           id?: string
           is_active?: boolean
