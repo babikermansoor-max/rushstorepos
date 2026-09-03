@@ -19,24 +19,18 @@ export type ReceiptData = {
   paid?: number | null;
 };
 
-const PAPER_KEY = "rush_paper_width";
-
-type Paper = "58" | "72" | "80" | "auto";
-
-function applyPaper(paper: Paper) {
-  document.documentElement.setAttribute("data-paper", paper);
+function applyThermalPage() {
+  document.documentElement.setAttribute("data-paper", "80");
   let el = document.getElementById("receipt-page-style") as HTMLStyleElement | null;
   if (!el) {
     el = document.createElement("style");
     el.id = "receipt-page-style";
     document.head.appendChild(el);
   }
-  // Xprinter POS-80: صفحة 80mm × 3276mm (أقصى طول مدعوم) — 58mm تستخدم 3276mm أيضاً
-  el.textContent =
-    paper === "auto"
-      ? `@media print { @page { size: auto; margin: 0; } }`
-      : `@media print { @page { size: ${paper}mm 3276mm; margin: 0; } }`;
+  // طابعة حرارية 80mm (المساحة القابلة للطباعة 72mm) وأقصى طول 3276mm
+  el.textContent = `@media print { @page { size: 80mm 3276mm; margin: 0; } }`;
 }
+
 
 function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boolean }) {
   const change = data.paid != null ? data.paid - data.total : null;
