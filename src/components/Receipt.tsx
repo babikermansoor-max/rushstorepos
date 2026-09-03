@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Printer, Check } from "lucide-react";
+import JsBarcode from "jsbarcode";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatSDG, PAYMENT_LABELS } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
