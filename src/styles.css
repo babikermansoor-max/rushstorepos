@@ -147,13 +147,12 @@
   color: var(--color-primary);
 }
 
-/* Thermal printer profile: Xprinter 80mm (72mm printable) / 58mm (48mm) */
+/* Thermal printer profile only: Golden Gate N200 / Xprinter 80mm (72mm printable) */
 #receipt-print-root {
   display: none;
 }
 
 @media print {
-  /* Xprinter POS-80: عرض 80mm وأقصى طول 3276mm */
   @page {
     size: 80mm 3276mm;
     margin: 0;
@@ -185,16 +184,16 @@
     overflow: hidden !important;
   }
 
-  /* Full printable width, edge-to-edge like a printer test page */
+  /* 72mm printable area centered on 80mm paper */
   #receipt-print {
     position: static !important;
     box-sizing: border-box !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
+    width: 72mm !important;
+    max-width: 72mm !important;
+    margin: 0 auto !important;
     border: 0 !important;
     border-radius: 0 !important;
-    padding: 0 2mm 6mm !important;
+    padding: 0 0 6mm !important;
     color: #000;
     background: #fff;
     font-size: 20px;
@@ -203,8 +202,6 @@
     box-shadow: none !important;
     overflow-wrap: anywhere;
   }
-
-
 
   #receipt-print * {
     color: #000 !important;
@@ -248,51 +245,6 @@
     padding: 1mm 0 !important;
   }
 
-  html[data-paper="58"] #receipt-print-root,
-  html[data-paper="58"] html,
-  html[data-paper="58"] body {
-    width: 58mm !important;
-    max-width: 58mm !important;
-  }
-
-  html[data-paper="58"] #receipt-print {
-    width: 100% !important;
-    max-width: 100% !important;
-    font-size: 16px;
-    padding: 0 1.5mm 6mm !important;
-  }
-
-  html[data-paper="72"] #receipt-print-root,
-  html[data-paper="72"] html,
-  html[data-paper="72"] body {
-    width: 72mm !important;
-    max-width: 72mm !important;
-  }
-
-  html[data-paper="72"] #receipt-print {
-    width: 100% !important;
-    max-width: 100% !important;
-    font-size: 20px;
-    padding: 0 2mm 6mm !important;
-  }
-
-  html[data-paper="auto"] #receipt-print-root,
-  html[data-paper="auto"] html,
-  html[data-paper="auto"] body {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  html[data-paper="auto"] #receipt-print {
-    width: 100% !important;
-    max-width: 100% !important;
-    font-size: 20px;
-    padding: 0 2mm 6mm !important;
-  }
-
-
-
-
   /* First element must start flush with the paper top */
   #receipt-print > *:first-child {
     margin-top: 0 !important;
@@ -310,6 +262,7 @@
     print-color-adjust: exact;
   }
 }
+
 
 
 

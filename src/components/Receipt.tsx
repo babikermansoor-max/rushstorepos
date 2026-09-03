@@ -19,24 +19,18 @@ export type ReceiptData = {
   paid?: number | null;
 };
 
-const PAPER_KEY = "rush_paper_width";
-
-type Paper = "58" | "72" | "80" | "auto";
-
-function applyPaper(paper: Paper) {
-  document.documentElement.setAttribute("data-paper", paper);
+function applyThermalPage() {
+  document.documentElement.setAttribute("data-paper", "80");
   let el = document.getElementById("receipt-page-style") as HTMLStyleElement | null;
   if (!el) {
     el = document.createElement("style");
     el.id = "receipt-page-style";
     document.head.appendChild(el);
   }
-  // Xprinter POS-80: صفحة 80mm × 3276mm (أقصى طول مدعوم) — 58mm تستخدم 3276mm أيضاً
-  el.textContent =
-    paper === "auto"
-      ? `@media print { @page { size: auto; margin: 0; } }`
-      : `@media print { @page { size: ${paper}mm 3276mm; margin: 0; } }`;
+  // طابعة حرارية 80mm (المساحة القابلة للطباعة 72mm) وأقصى طول 3276mm
+  el.textContent = `@media print { @page { size: 80mm 3276mm; margin: 0; } }`;
 }
+
 
 function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boolean }) {
   const change = data.paid != null ? data.paid - data.total : null;
@@ -144,20 +138,14 @@ export function ReceiptDialog({
   onOpenChange: (v: boolean) => void;
   autoPrint?: boolean;
 }) {
-  const [paper, setPaper] = useState<Paper>("80");
   const [printLogoReady, setPrintLogoReady] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem(PAPER_KEY);
-    if (saved === "58" || saved === "72" || saved === "80" || saved === "auto") setPaper(saved);
+    applyThermalPage();
   }, []);
 
-  useEffect(() => {
-    applyPaper(paper);
-    localStorage.setItem(PAPER_KEY, paper);
-  }, [paper]);
 
   // Preload the print logo so the thermal-receipt image is cached before printing.
   useEffect(() => {
@@ -196,21 +184,10 @@ export function ReceiptDialog({
 
           <ReceiptBody data={data} />
 
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <span>مقاس الورق:</span>
-            {(["58", "72", "80", "auto"] as const).map((w) => (
-              <button
-                key={w}
-                type="button"
-                onClick={() => setPaper(w)}
-                className={`rounded-md border px-2 py-1 ${
-                  paper === w ? "border-gold text-gold" : "border-border"
-                }`}
-              >
-                {w === "auto" ? "حسب الطابعة" : `${w} مم`}
-              </button>
-            ))}
-          </div>
+          <p className="text-center text-xs text-muted-foreground">
+            الطباعة مهيأة لطابعة حرارية 80 مم (مساحة طباعة 72 مم)
+          </p>
+
 
           <div className="flex gap-2">
             <Button onClick={() => window.print()} className="flex-1">
