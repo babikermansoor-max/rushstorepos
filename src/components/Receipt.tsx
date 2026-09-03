@@ -79,6 +79,11 @@ function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boole
           <span>رقم الفاتورة</span>
           <span className="font-bold text-foreground">#{data.invoiceNo}</span>
         </div>
+        {printMode && (
+          <div className="receipt-barcode-wrap">
+            <InvoiceBarcode value={String(data.invoiceNo)} />
+          </div>
+        )}
         <div className="flex justify-between">
           <span>التاريخ</span>
           <span>{formatDateTime(data.createdAt)}</span>
