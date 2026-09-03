@@ -437,9 +437,10 @@ function StockReport() {
           name: form.name.trim(),
           barcode: form.barcode.trim() || null,
           category_id: form.category_id || null,
-          cost_price_aed: aed,
+          cost_price_aed: aed > 0 ? aed : aedRate > 0 ? Math.round((cost / aedRate) * 10000) / 10000 : 0,
           cost_price: cost,
           sale_price: price,
+          sale_price_aed: aedRate > 0 ? Math.round((price / aedRate) * 10000) / 10000 : 0,
         })
         .select("id")
         .single();
