@@ -49,19 +49,21 @@ export function ExchangeRateDialog() {
       if (reprice) {
         const { data: rows, error: readErr } = await supabase
           .from("products")
-          .select("id, cost_price_aed")
-          .gt("cost_price_aed", 0);
+          .select("id, cost_price_aed, sale_price_aed")
+          .or("cost_price_aed.gt.0,sale_price_aed.gt.0");
         if (readErr) throw readErr;
         const list = rows ?? [];
         for (let i = 0; i < list.length; i += 100) {
           const chunk = list.slice(i, i + 100);
           const results = await Promise.all(
-            chunk.map((p) =>
-              supabase
-                .from("products")
-                .update({ cost_price: aedToSdg(Number(p.cost_price_aed), nextRate) })
-                .eq("id", p.id),
-            ),
+            chunk.map((p) => {
+              const costAed = Number(p.cost_price_aed || 0);
+              const saleAed = Number(p.sale_price_aed || 0);
+              const patch: { cost_price?: number; sale_price?: number } = {};
+              if (costAed > 0) patch.cost_price = aedToSdg(costAed, nextRate);
+              if (saleAed > 0) patch.sale_price = aedToSdg(saleAed, nextRate);
+              return supabase.from("products").update(patch).eq("id", p.id);
+            }),
           );
           const failed = results.find((r) => r.error);
           if (failed?.error) throw failed.error;
