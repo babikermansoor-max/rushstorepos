@@ -264,6 +264,26 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* Barcode below the invoice number (Code128, black bars) */
+  #receipt-print .receipt-barcode-wrap {
+    display: block;
+    text-align: center;
+    margin-top: 0.5mm;
+  }
+
+  #receipt-print .receipt-barcode {
+    display: block;
+    width: 72%;
+    max-width: 55mm;
+    height: 13mm;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  #receipt-print .receipt-barcode rect {
+    fill: #000 !important;
+  }
 }
 
 
