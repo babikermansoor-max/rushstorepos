@@ -184,21 +184,10 @@ export function ReceiptDialog({
 
           <ReceiptBody data={data} />
 
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <span>مقاس الورق:</span>
-            {(["58", "72", "80", "auto"] as const).map((w) => (
-              <button
-                key={w}
-                type="button"
-                onClick={() => setPaper(w)}
-                className={`rounded-md border px-2 py-1 ${
-                  paper === w ? "border-gold text-gold" : "border-border"
-                }`}
-              >
-                {w === "auto" ? "حسب الطابعة" : `${w} مم`}
-              </button>
-            ))}
-          </div>
+          <p className="text-center text-xs text-muted-foreground">
+            الطباعة مهيأة لطابعة حرارية 80 مم (مساحة طباعة 72 مم)
+          </p>
+
 
           <div className="flex gap-2">
             <Button onClick={() => window.print()} className="flex-1">
