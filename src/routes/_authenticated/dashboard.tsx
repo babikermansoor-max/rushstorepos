@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Receipt, Boxes, Activity } from "lucide-react";
+import { DollarSign, Receipt, Boxes, Activity, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
 import { formatDate, formatNumber, formatSDG, PAYMENT_LABELS } from "@/lib/format";
 
@@ -24,26 +25,40 @@ function startOfToday() {
 }
 
 function Dashboard() {
+  const { user } = useSession();
+  const { data: me } = useProfile(user?.id);
+  const branchId = me?.profile?.branch_id ?? null;
+
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["dashboard", branchId],
     queryFn: async () => {
       const since = startOfToday();
-      const [sales, items, lowStock] = await Promise.all([
+      const lowQuery = supabase
+        .from("stock")
+        .select("quantity, branch_id, products(name), branches(name)")
+        .lte("quantity", 5)
+        .order("quantity");
+      const [sales, items, lowStock, rets] = await Promise.all([
         supabase.from("sales").select("id, total, payment_method, created_at").gte("created_at", since),
         supabase.from("sale_items").select("quantity, sale_id, sales!inner(created_at)").gte("sales.created_at", since),
-        supabase.from("stock").select("quantity, products(name), branches(name)").lte("quantity", 5).order("quantity"),
+        branchId ? lowQuery.eq("branch_id", branchId) : lowQuery,
+        supabase.from("returns").select("amount, quantity, created_at").gte("created_at", since),
       ]);
       const list = sales.data ?? [];
       const total = list.reduce((s, r) => s + Number(r.total), 0);
-      const units = (items.data ?? []).reduce((s, r) => s + Number(r.quantity), 0);
+      const returned = (rets.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+      const returnedUnits = (rets.data ?? []).reduce((s, r) => s + Number(r.quantity), 0);
+      const units = (items.data ?? []).reduce((s, r) => s + Number(r.quantity), 0) - returnedUnits;
       const byMethod: Record<string, number> = { cash: 0, bankak: 0 };
       list.forEach((r) => {
         byMethod[r.payment_method] = (byMethod[r.payment_method] ?? 0) + Number(r.total);
       });
       return {
         total,
+        returned,
+        net: total - returned,
         count: list.length,
-        units,
+        units: Math.max(0, units),
         avg: list.length ? total / list.length : 0,
         byMethod,
         lowStock: lowStock.data ?? [],
@@ -51,12 +66,16 @@ function Dashboard() {
     },
   });
 
+
   const cards = [
     { label: "مبيعاتي اليوم", value: formatSDG(data?.total ?? 0), icon: DollarSign },
+    { label: "المرتجعات اليوم", value: formatSDG(data?.returned ?? 0), icon: Undo2 },
+    { label: "صافي المبيعات", value: formatSDG(data?.net ?? 0), icon: DollarSign },
     { label: "الفواتير", value: formatNumber(data?.count ?? 0), icon: Receipt },
-    { label: "الوحدات المباعة", value: formatNumber(data?.units ?? 0), icon: Boxes },
+    { label: "الوحدات المباعة (صافي)", value: formatNumber(data?.units ?? 0), icon: Boxes },
     { label: "متوسط الفاتورة", value: formatSDG(data?.avg ?? 0), icon: Activity },
   ];
+
 
   const totalPay = (data?.byMethod["cash"] ?? 0) + (data?.byMethod["bankak"] ?? 0);
 
@@ -67,7 +86,7 @@ function Dashboard() {
         subtitle={formatDate(new Date())}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="surface p-5">
             <div className="flex items-center justify-between">

@@ -55,6 +55,7 @@ type MovementItem = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  unit_cost: number;
   sales: {
     id: string;
     created_at: string;
@@ -66,6 +67,15 @@ type MovementItem = {
     total: number;
   };
 };
+type ReturnRow = {
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  amount: number;
+  branch_id: string | null;
+  created_at: string;
+};
+
 
 function isoDay(offset = 0) {
   const d = new Date();
@@ -147,19 +157,25 @@ function StockReport() {
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${to}T23:59:59`).toISOString();
-      const [{ data: items }, { data: profiles }] = await Promise.all([
+      const [{ data: items }, { data: profiles }, { data: rets }] = await Promise.all([
         supabase
           .from("sale_items")
           .select(
-            "product_id, product_name, quantity, unit_price, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
+            "product_id, product_name, quantity, unit_price, unit_cost, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
           )
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
         supabase.from("profiles").select("id, full_name"),
+        supabase
+          .from("returns")
+          .select("product_id, product_name, quantity, amount, branch_id, created_at")
+          .gte("created_at", start)
+          .lte("created_at", end),
       ]);
       return {
         items: (items ?? []) as unknown as MovementItem[],
         names: new Map((profiles ?? []).map((p) => [p.id, p.full_name])),
+        returns: (rets ?? []) as ReturnRow[],
       };
     },
   });
@@ -255,12 +271,14 @@ function StockReport() {
       acc.cost += r.quantity * Number(r.product.cost_price);
       acc.sale += r.quantity * Number(r.product.sale_price);
       if (r.missing) acc.missing += 1;
+      if (Number(r.product.sale_price) <= 0) acc.unpriced += 1;
       if (r.quantity <= 0) acc.out += 1;
       else if (r.quantity <= 5) acc.low += 1;
       return acc;
     },
-    { qty: 0, cost: 0, sale: 0, low: 0, out: 0, missing: 0 },
+    { qty: 0, cost: 0, sale: 0, low: 0, out: 0, missing: 0, unpriced: 0 },
   );
+
 
   const invoices = useMemo(() => {
     const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
@@ -288,7 +306,17 @@ function StockReport() {
     return [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }, [movement, branches, branch]);
 
-  // تقرير الأصناف: المباع والإيراد والربح لكل صنف خلال الفترة
+  // المرتجعات ضمن نفس الفترة والفرع
+  const periodReturns = useMemo(
+    () => (movement?.returns ?? []).filter((r) => branch === "all" || r.branch_id === branch),
+    [movement, branch],
+  );
+  const returnsTotal = useMemo(
+    () => periodReturns.reduce((s, r) => s + Number(r.amount), 0),
+    [periodReturns],
+  );
+
+  // تقرير الأصناف: المباع والإيراد والربح لكل صنف خلال الفترة (بعد خصم المرتجعات)
   const productReport = useMemo(() => {
     const costOf = (id: string) => Number((products ?? []).find((p) => p.id === id)?.cost_price ?? 0);
     const map = new Map<
@@ -301,14 +329,29 @@ function StockReport() {
       const id = it.product_id ?? `x-${it.product_name}`;
       const cur = map.get(id) ?? { id, name: it.product_name, units: 0, revenue: 0, cost: 0, invoices: new Set<string>() };
       const qty = Number(it.quantity);
+      // تكلفة وقت البيع إن وُجدت، وإلا التكلفة الحالية للمنتج
+      const unitCost = Number(it.unit_cost || 0) || (it.product_id ? costOf(it.product_id) : 0);
       cur.units += qty;
       cur.revenue += qty * Number(it.unit_price);
-      cur.cost += qty * (it.product_id ? costOf(it.product_id) : 0);
+      cur.cost += qty * unitCost;
       cur.invoices.add(s.id);
       map.set(id, cur);
     }
+    // خصم المرتجعات من الكميات والإيراد والتكلفة
+    for (const r of periodReturns) {
+      const id = r.product_id ?? `x-${r.product_name}`;
+      const cur = map.get(id);
+      if (!cur) continue;
+      const qty = Number(r.quantity);
+      const avgCost = cur.units > 0 ? cur.cost / cur.units : 0;
+      cur.units = Math.max(0, cur.units - qty);
+      cur.revenue = Math.max(0, cur.revenue - Number(r.amount));
+      cur.cost = Math.max(0, cur.cost - qty * avgCost);
+      map.set(id, cur);
+    }
     return [...map.values()].sort((a, b) => b.units - a.units);
-  }, [movement, branch, products]);
+  }, [movement, branch, products, periodReturns]);
+
 
   // أسعار الشراء والبيع لكل منتج
   const priceOf = (id: string) => {
@@ -789,11 +832,13 @@ function StockReport() {
         <Stat label="الربح المتوقع" value={formatSDG(totals.sale - totals.cost)} highlight />
       </div>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="أصناف شارفت على النفاد" value={formatNumber(totals.low)} />
         <Stat label="أصناف نفدت" value={formatNumber(totals.out)} />
         <Stat label="أصناف غير مضافة للمخزن" value={formatNumber(totals.missing)} />
+        <Stat label="منتجات بلا تسعير" value={formatNumber(totals.unpriced)} />
       </div>
+
 
       <div className="surface mb-4 p-4">
         <h2 className="font-bold">حركة الصرف من المخزن</h2>
@@ -883,11 +928,13 @@ function StockReport() {
             { label: "عدد الأصناف", value: formatNumber(catCount), tone: "bg-primary text-primary-foreground" },
             { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "bg-secondary text-secondary-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "bg-destructive/10 text-destructive" },
-            { label: "قيمة المباع", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
+            { label: "قيمة المباع (صافي)", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
+            { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "bg-destructive/10 text-destructive" },
             { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "bg-success/10 text-success" },
           ];
           return (
-            <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+
               {cards.map((c) => (
                 <div key={c.label} className={`rounded-xl border border-border p-3 ${c.tone}`}>
                   <p className="text-[11px] opacity-80">{c.label}</p>
