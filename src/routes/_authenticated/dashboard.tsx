@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Receipt, Boxes, Activity } from "lucide-react";
+import { DollarSign, Receipt, Boxes, Activity, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
 import { formatDate, formatNumber, formatSDG, PAYMENT_LABELS } from "@/lib/format";
 
