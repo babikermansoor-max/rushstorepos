@@ -905,7 +905,7 @@ function StockReport() {
               className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
                 repCat === n
                   ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:bg-secondary/70"
+                  : "border border-border bg-muted text-foreground hover:bg-gold-soft"
               }`}
             >
               {n}
