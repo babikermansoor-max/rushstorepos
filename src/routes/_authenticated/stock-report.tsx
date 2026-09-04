@@ -55,6 +55,7 @@ type MovementItem = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  unit_cost: number;
   sales: {
     id: string;
     created_at: string;
