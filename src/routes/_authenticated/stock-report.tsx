@@ -304,7 +304,17 @@ function StockReport() {
     return [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   }, [movement, branches, branch]);
 
-  // تقرير الأصناف: المباع والإيراد والربح لكل صنف خلال الفترة
+  // المرتجعات ضمن نفس الفترة والفرع
+  const periodReturns = useMemo(
+    () => (movement?.returns ?? []).filter((r) => branch === "all" || r.branch_id === branch),
+    [movement, branch],
+  );
+  const returnsTotal = useMemo(
+    () => periodReturns.reduce((s, r) => s + Number(r.amount), 0),
+    [periodReturns],
+  );
+
+  // تقرير الأصناف: المباع والإيراد والربح لكل صنف خلال الفترة (بعد خصم المرتجعات)
   const productReport = useMemo(() => {
     const costOf = (id: string) => Number((products ?? []).find((p) => p.id === id)?.cost_price ?? 0);
     const map = new Map<
@@ -317,14 +327,29 @@ function StockReport() {
       const id = it.product_id ?? `x-${it.product_name}`;
       const cur = map.get(id) ?? { id, name: it.product_name, units: 0, revenue: 0, cost: 0, invoices: new Set<string>() };
       const qty = Number(it.quantity);
+      // تكلفة وقت البيع إن وُجدت، وإلا التكلفة الحالية للمنتج
+      const unitCost = Number(it.unit_cost || 0) || (it.product_id ? costOf(it.product_id) : 0);
       cur.units += qty;
       cur.revenue += qty * Number(it.unit_price);
-      cur.cost += qty * (it.product_id ? costOf(it.product_id) : 0);
+      cur.cost += qty * unitCost;
       cur.invoices.add(s.id);
       map.set(id, cur);
     }
+    // خصم المرتجعات من الكميات والإيراد والتكلفة
+    for (const r of periodReturns) {
+      const id = r.product_id ?? `x-${r.product_name}`;
+      const cur = map.get(id);
+      if (!cur) continue;
+      const qty = Number(r.quantity);
+      const avgCost = cur.units > 0 ? cur.cost / cur.units : 0;
+      cur.units = Math.max(0, cur.units - qty);
+      cur.revenue = Math.max(0, cur.revenue - Number(r.amount));
+      cur.cost = Math.max(0, cur.cost - qty * avgCost);
+      map.set(id, cur);
+    }
     return [...map.values()].sort((a, b) => b.units - a.units);
-  }, [movement, branch, products]);
+  }, [movement, branch, products, periodReturns]);
+
 
   // أسعار الشراء والبيع لكل منتج
   const priceOf = (id: string) => {
