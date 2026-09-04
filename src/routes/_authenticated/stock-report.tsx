@@ -67,6 +67,15 @@ type MovementItem = {
     total: number;
   };
 };
+type ReturnRow = {
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  amount: number;
+  branch_id: string | null;
+  created_at: string;
+};
+
 
 function isoDay(offset = 0) {
   const d = new Date();
