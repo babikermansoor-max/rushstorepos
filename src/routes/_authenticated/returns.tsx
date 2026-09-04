@@ -39,7 +39,19 @@ function Returns() {
       (await supabase.from("products").select("id, name, sale_price, barcode").order("name")).data ?? [],
   });
 
-  function scanBarcode(code: string) {
+  // سعر البيع الفعلي لآخر فاتورة بيع لهذا المنتج، وإلا سعر البيع الحالي
+  async function lastSoldPrice(productId: string, fallback: number) {
+    const { data } = await supabase
+      .from("sale_items")
+      .select("unit_price, sales!inner(created_at)")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false, referencedTable: "sales" })
+      .limit(1);
+    const price = Number((data ?? [])[0]?.unit_price ?? 0);
+    return price > 0 ? price : fallback;
+  }
+
+  async function scanBarcode(code: string) {
     const v = code.trim();
     if (!v) return;
     const found = (products ?? []).find((p) => (p.barcode ?? "").trim() === v);
@@ -47,14 +59,16 @@ function Returns() {
       toast.error("لا يوجد منتج بهذا الباركود");
       return;
     }
+    const unit = await lastSoldPrice(found.id, Number(found.sale_price));
     setForm((f) => {
       const same = f.product_id === found.id;
       const qty = same ? Math.floor(Number(f.quantity || 1)) + 1 : 1;
-      return { ...f, product_id: found.id, quantity: String(qty), amount: String(Number(found.sale_price) * qty) };
+      return { ...f, product_id: found.id, quantity: String(qty), amount: String(unit * qty) };
     });
     setBarcode("");
     toast.success(`تمت إضافة ${found.name}`);
   }
+
 
 
   const { data: branches } = useQuery({
