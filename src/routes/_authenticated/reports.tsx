@@ -43,7 +43,7 @@ function Reports() {
           .order("created_at", { ascending: false }),
         supabase
           .from("sale_items")
-          .select("product_name, quantity, unit_price, unit_cost, sales!inner(created_at)")
+          .select("product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at)")
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
         supabase
@@ -53,7 +53,14 @@ function Reports() {
           .lte("created_at", end),
         supabase.from("expenses").select("amount, spent_at").gte("spent_at", from).lte("spent_at", to),
       ]);
-      return { sales: sales ?? [], items: items ?? [], returns: rets ?? [], expenses: exps ?? [] };
+      const { data: prods } = await supabase.from("products").select("id, cost_price");
+      return {
+        sales: sales ?? [],
+        items: items ?? [],
+        returns: rets ?? [],
+        expenses: exps ?? [],
+        costs: new Map((prods ?? []).map((p) => [p.id, Number(p.cost_price)])),
+      };
     },
   });
 
@@ -64,9 +71,14 @@ function Reports() {
   const returned = (data?.returns ?? []).reduce((s, r) => s + Number(r.amount), 0);
   const netSales = total - returned;
   const expenses = (data?.expenses ?? []).reduce((s, r) => s + Number(r.amount), 0);
-  const cogs = (data?.items ?? []).reduce((s, it) => s + Number(it.quantity) * Number(it.unit_cost ?? 0), 0);
+  // تكلفة وقت البيع إن وُجدت، وإلا التكلفة الحالية للمنتج
+  const cogs = (data?.items ?? []).reduce((s, it) => {
+    const unitCost = Number(it.unit_cost ?? 0) || (it.product_id ? (data?.costs.get(it.product_id) ?? 0) : 0);
+    return s + Number(it.quantity) * unitCost;
+  }, 0);
   const grossProfit = total - cogs;
   const netProfit = grossProfit - returned - expenses;
+
 
   const topMap = new Map<string, { qty: number; total: number }>();
   for (const it of data?.items ?? []) {
