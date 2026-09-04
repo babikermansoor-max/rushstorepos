@@ -151,7 +151,7 @@ function Returns() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        scanBarcode(barcode);
+                        void scanBarcode(barcode);
                       }
                     }}
                     placeholder="امسح الباركود ثم Enter"
