@@ -95,10 +95,15 @@ function Reports() {
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="إجمالي المبيعات" value={formatSDG(total)} highlight />
+        <Stat label="المرتجعات" value={formatSDG(returned)} />
+        <Stat label="صافي المبيعات" value={formatSDG(netSales)} highlight />
         <Stat label="عدد الفواتير" value={formatNumber(sales.length)} />
         <Stat label="نقدي" value={formatSDG(cash)} />
         <Stat label="بنكك" value={formatSDG(bankak)} />
+        <Stat label="المصروفات" value={formatSDG(expenses)} />
+        <Stat label="صافي الربح" value={formatSDG(netProfit)} highlight />
       </div>
+
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="surface p-4 lg:col-span-2">
