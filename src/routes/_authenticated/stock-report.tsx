@@ -928,11 +928,13 @@ function StockReport() {
             { label: "عدد الأصناف", value: formatNumber(catCount), tone: "bg-primary text-primary-foreground" },
             { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "bg-secondary text-secondary-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "bg-destructive/10 text-destructive" },
-            { label: "قيمة المباع", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
+            { label: "قيمة المباع (صافي)", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
+            { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "bg-destructive/10 text-destructive" },
             { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "bg-success/10 text-success" },
           ];
           return (
-            <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+
               {cards.map((c) => (
                 <div key={c.label} className={`rounded-xl border border-border p-3 ${c.tone}`}>
                   <p className="text-[11px] opacity-80">{c.label}</p>
