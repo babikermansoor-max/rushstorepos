@@ -68,10 +68,13 @@ function Dashboard() {
 
   const cards = [
     { label: "مبيعاتي اليوم", value: formatSDG(data?.total ?? 0), icon: DollarSign },
+    { label: "المرتجعات اليوم", value: formatSDG(data?.returned ?? 0), icon: Undo2 },
+    { label: "صافي المبيعات", value: formatSDG(data?.net ?? 0), icon: DollarSign },
     { label: "الفواتير", value: formatNumber(data?.count ?? 0), icon: Receipt },
-    { label: "الوحدات المباعة", value: formatNumber(data?.units ?? 0), icon: Boxes },
+    { label: "الوحدات المباعة (صافي)", value: formatNumber(data?.units ?? 0), icon: Boxes },
     { label: "متوسط الفاتورة", value: formatSDG(data?.avg ?? 0), icon: Activity },
   ];
+
 
   const totalPay = (data?.byMethod["cash"] ?? 0) + (data?.byMethod["bankak"] ?? 0);
 
