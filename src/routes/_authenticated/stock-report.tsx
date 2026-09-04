@@ -830,11 +830,13 @@ function StockReport() {
         <Stat label="الربح المتوقع" value={formatSDG(totals.sale - totals.cost)} highlight />
       </div>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="أصناف شارفت على النفاد" value={formatNumber(totals.low)} />
         <Stat label="أصناف نفدت" value={formatNumber(totals.out)} />
         <Stat label="أصناف غير مضافة للمخزن" value={formatNumber(totals.missing)} />
+        <Stat label="منتجات بلا تسعير" value={formatNumber(totals.unpriced)} />
       </div>
+
 
       <div className="surface mb-4 p-4">
         <h2 className="font-bold">حركة الصرف من المخزن</h2>
