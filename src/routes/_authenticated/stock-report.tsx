@@ -977,7 +977,7 @@ function StockReport() {
                 <Fragment key={c.name}>
                   <tr
                     onClick={() => setOpenCats((s) => ({ ...s, [c.name]: !s[c.name] }))}
-                    className="cursor-pointer border-b border-border/60 bg-primary/10 hover:bg-primary/20"
+                    className="cursor-pointer border-b border-border bg-gold-soft font-semibold hover:bg-gold-soft/70"
                   >
                     <td className="p-3 font-bold">
                       <span className="ml-2 text-muted-foreground">{expanded ? "▾" : "▸"}</span>
@@ -1073,7 +1073,7 @@ function StockReport() {
                 <tr
                   key={String(inv.invoiceNo)}
                   onClick={() => setReceipt(inv)}
-                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
                 >
                   <td className="p-3 font-bold">#{inv.invoiceNo}</td>
                   <td className="p-3 text-muted-foreground">{formatDate(new Date(inv.createdAt))}</td>
@@ -1287,7 +1287,7 @@ function StockReport() {
                       const inv = invoices.find((x) => x.invoiceNo === r.invoiceNo);
                       if (inv) setReceipt(inv);
                     }}
-                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
                   >
                     <td className="p-2 font-bold">#{r.invoiceNo}</td>
                     <td className="p-2 text-muted-foreground">{formatDate(new Date(r.createdAt))}</td>
