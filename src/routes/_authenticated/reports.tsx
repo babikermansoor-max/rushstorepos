@@ -34,7 +34,7 @@ function Reports() {
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${to}T23:59:59`).toISOString();
-      const [{ data: sales }, { data: items }] = await Promise.all([
+      const [{ data: sales }, { data: items }, { data: rets }, { data: exps }] = await Promise.all([
         supabase
           .from("sales")
           .select("id, invoice_no, total, payment_method, created_at, branches(name)")
@@ -43,11 +43,17 @@ function Reports() {
           .order("created_at", { ascending: false }),
         supabase
           .from("sale_items")
-          .select("product_name, quantity, unit_price, sales!inner(created_at)")
+          .select("product_name, quantity, unit_price, unit_cost, sales!inner(created_at)")
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
+        supabase
+          .from("returns")
+          .select("amount, quantity, created_at")
+          .gte("created_at", start)
+          .lte("created_at", end),
+        supabase.from("expenses").select("amount, spent_at").gte("spent_at", from).lte("spent_at", to),
       ]);
-      return { sales: sales ?? [], items: items ?? [] };
+      return { sales: sales ?? [], items: items ?? [], returns: rets ?? [], expenses: exps ?? [] };
     },
   });
 
@@ -55,6 +61,12 @@ function Reports() {
   const total = sales.reduce((s, r) => s + Number(r.total), 0);
   const cash = sales.filter((s) => s.payment_method === "cash").reduce((s, r) => s + Number(r.total), 0);
   const bankak = total - cash;
+  const returned = (data?.returns ?? []).reduce((s, r) => s + Number(r.amount), 0);
+  const netSales = total - returned;
+  const expenses = (data?.expenses ?? []).reduce((s, r) => s + Number(r.amount), 0);
+  const cogs = (data?.items ?? []).reduce((s, it) => s + Number(it.quantity) * Number(it.unit_cost ?? 0), 0);
+  const grossProfit = total - cogs;
+  const netProfit = grossProfit - returned - expenses;
 
   const topMap = new Map<string, { qty: number; total: number }>();
   for (const it of data?.items ?? []) {
@@ -64,6 +76,7 @@ function Reports() {
     topMap.set(it.product_name, cur);
   }
   const top = [...topMap.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+
 
   return (
     <div>
