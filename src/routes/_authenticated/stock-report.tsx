@@ -271,12 +271,14 @@ function StockReport() {
       acc.cost += r.quantity * Number(r.product.cost_price);
       acc.sale += r.quantity * Number(r.product.sale_price);
       if (r.missing) acc.missing += 1;
+      if (Number(r.product.sale_price) <= 0) acc.unpriced += 1;
       if (r.quantity <= 0) acc.out += 1;
       else if (r.quantity <= 5) acc.low += 1;
       return acc;
     },
-    { qty: 0, cost: 0, sale: 0, low: 0, out: 0, missing: 0 },
+    { qty: 0, cost: 0, sale: 0, low: 0, out: 0, missing: 0, unpriced: 0 },
   );
+
 
   const invoices = useMemo(() => {
     const branchName = (id: string | null) => (branches ?? []).find((b) => b.id === id)?.name ?? "—";
