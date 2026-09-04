@@ -148,19 +148,25 @@ function StockReport() {
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${to}T23:59:59`).toISOString();
-      const [{ data: items }, { data: profiles }] = await Promise.all([
+      const [{ data: items }, { data: profiles }, { data: rets }] = await Promise.all([
         supabase
           .from("sale_items")
           .select(
-            "product_id, product_name, quantity, unit_price, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
+            "product_id, product_name, quantity, unit_price, unit_cost, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
           )
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
         supabase.from("profiles").select("id, full_name"),
+        supabase
+          .from("returns")
+          .select("product_id, product_name, quantity, amount, branch_id, created_at")
+          .gte("created_at", start)
+          .lte("created_at", end),
       ]);
       return {
         items: (items ?? []) as unknown as MovementItem[],
         names: new Map((profiles ?? []).map((p) => [p.id, p.full_name])),
+        returns: (rets ?? []) as ReturnRow[],
       };
     },
   });
