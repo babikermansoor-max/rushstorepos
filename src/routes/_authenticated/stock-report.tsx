@@ -905,7 +905,7 @@ function StockReport() {
               className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
                 repCat === n
                   ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:bg-secondary/70"
+                  : "border border-border bg-muted text-foreground hover:bg-gold-soft"
               }`}
             >
               {n}
@@ -925,19 +925,19 @@ function StockReport() {
             0,
           );
           const cards = [
-            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "bg-primary text-primary-foreground" },
-            { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "bg-secondary text-secondary-foreground" },
-            { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "bg-destructive/10 text-destructive" },
-            { label: "قيمة المباع (صافي)", value: formatSDG(totalRevenue), tone: "bg-primary/15 text-gold" },
-            { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "bg-destructive/10 text-destructive" },
-            { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "bg-success/10 text-success" },
+            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "border-border bg-muted text-foreground" },
+            { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
+            { label: "قيمة المباع (صافي)", value: formatSDG(totalRevenue), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
+            { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "border-success/40 bg-success/10 text-success" },
           ];
           return (
             <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
 
               {cards.map((c) => (
-                <div key={c.label} className={`rounded-xl border border-border p-3 ${c.tone}`}>
-                  <p className="text-[11px] opacity-80">{c.label}</p>
+                <div key={c.label} className={`rounded-xl border p-3 ${c.tone}`}>
+                  <p className="text-[11px] font-semibold">{c.label}</p>
                   <p className="mt-1 text-lg font-extrabold">{c.value}</p>
                 </div>
               ))}
@@ -977,7 +977,7 @@ function StockReport() {
                 <Fragment key={c.name}>
                   <tr
                     onClick={() => setOpenCats((s) => ({ ...s, [c.name]: !s[c.name] }))}
-                    className="cursor-pointer border-b border-border/60 bg-primary/10 hover:bg-primary/20"
+                    className="cursor-pointer border-b border-border bg-gold-soft font-semibold hover:bg-gold-soft/70"
                   >
                     <td className="p-3 font-bold">
                       <span className="ml-2 text-muted-foreground">{expanded ? "▾" : "▸"}</span>
@@ -1073,7 +1073,7 @@ function StockReport() {
                 <tr
                   key={String(inv.invoiceNo)}
                   onClick={() => setReceipt(inv)}
-                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
                 >
                   <td className="p-3 font-bold">#{inv.invoiceNo}</td>
                   <td className="p-3 text-muted-foreground">{formatDate(new Date(inv.createdAt))}</td>
@@ -1287,7 +1287,7 @@ function StockReport() {
                       const inv = invoices.find((x) => x.invoiceNo === r.invoiceNo);
                       if (inv) setReceipt(inv);
                     }}
-                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-secondary/50"
+                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
                   >
                     <td className="p-2 font-bold">#{r.invoiceNo}</td>
                     <td className="p-2 text-muted-foreground">{formatDate(new Date(r.createdAt))}</td>
