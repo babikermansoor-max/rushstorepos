@@ -66,7 +66,9 @@
   --secondary: oklch(0.19 0.012 65);
   --secondary-foreground: oklch(0.97 0.005 90);
   --muted: oklch(0.955 0.006 90);
-  --muted-foreground: oklch(0.52 0.012 70);
+  --muted-foreground: oklch(0.44 0.014 70);
+  --gold-text: oklch(0.53 0.115 72);
+  --gold-soft: oklch(0.94 0.045 86);
   --accent: oklch(0.94 0.03 88);
   --accent-foreground: oklch(0.24 0.02 70);
   --destructive: oklch(0.58 0.21 27);
@@ -103,7 +105,9 @@
   --secondary: oklch(0.26 0.012 65);
   --secondary-foreground: oklch(0.97 0.005 90);
   --muted: oklch(0.26 0.012 65);
-  --muted-foreground: oklch(0.72 0.01 80);
+  --muted-foreground: oklch(0.78 0.012 80);
+  --gold-text: oklch(0.86 0.135 86);
+  --gold-soft: oklch(0.32 0.05 82);
   --accent: oklch(0.3 0.03 82);
   --accent-foreground: oklch(0.92 0.06 85);
   --destructive: oklch(0.65 0.19 25);
@@ -146,7 +150,7 @@
 }
 
 @utility text-gold {
-  color: var(--color-primary);
+  color: var(--color-gold);
 }
 
 /* Thermal printer profile only: Golden Gate N200 / Xprinter 80mm (72mm printable) */
