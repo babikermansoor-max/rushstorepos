@@ -30,6 +30,7 @@ function Returns() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ product_id: "", quantity: "1", amount: "", reason: "" });
+  const [unitPrice, setUnitPrice] = useState(0);
 
   const [barcode, setBarcode] = useState("");
 
@@ -51,6 +52,23 @@ function Returns() {
     return price > 0 ? price : fallback;
   }
 
+  async function selectProduct(productId: string, addOne = false) {
+    const found = (products ?? []).find((p) => p.id === productId);
+    if (!found) return;
+    const unit = await lastSoldPrice(found.id, Number(found.sale_price));
+    setUnitPrice(unit);
+    setForm((f) => {
+      const same = f.product_id === found.id;
+      const qty = addOne ? (same ? Math.floor(Number(f.quantity || 1)) + 1 : 1) : Math.max(1, Math.floor(Number(f.quantity || 1)));
+      return { ...f, product_id: found.id, quantity: String(qty), amount: String(unit * qty) };
+    });
+  }
+
+  function changeQuantity(value: string) {
+    const qty = Math.max(1, Math.floor(Number(value || 1)));
+    setForm((f) => ({ ...f, quantity: value, amount: unitPrice > 0 ? String(unitPrice * qty) : f.amount }));
+  }
+
   async function scanBarcode(code: string) {
     const v = code.trim();
     if (!v) return;
@@ -59,15 +77,11 @@ function Returns() {
       toast.error("لا يوجد منتج بهذا الباركود");
       return;
     }
-    const unit = await lastSoldPrice(found.id, Number(found.sale_price));
-    setForm((f) => {
-      const same = f.product_id === found.id;
-      const qty = same ? Math.floor(Number(f.quantity || 1)) + 1 : 1;
-      return { ...f, product_id: found.id, quantity: String(qty), amount: String(unit * qty) };
-    });
+    await selectProduct(found.id, true);
     setBarcode("");
     toast.success(`تمت إضافة ${found.name}`);
   }
+
 
 
 
