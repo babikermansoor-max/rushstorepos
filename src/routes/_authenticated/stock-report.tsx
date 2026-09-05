@@ -967,17 +967,18 @@ function StockReport() {
                 <th className="p-3 font-medium">الصنف / المنتج</th>
                 <th className="p-3 font-medium">سعر الشراء</th>
                 <th className="p-3 font-medium">سعر البيع</th>
+                <th className="p-3 font-medium">الكمية في المخزن</th>
                 <th className="p-3 font-medium">القطع المباعة</th>
                 <th className="p-3 font-medium">عدد الفواتير</th>
-                <th className="p-3 font-medium">الإيراد</th>
-                <th className="p-3 font-medium">التكلفة</th>
-                <th className="p-3 font-medium">الربح</th>
+                <th className="p-3 font-medium">قيمة التكلفة</th>
+                <th className="p-3 font-medium">قيمة البيع</th>
+                <th className="p-3 font-medium">الربح المتوقع</th>
               </tr>
             </thead>
             <tbody>
               {filteredCategoryReport.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     لا توجد نتائج في هذه الفترة
                   </td>
                 </tr>
@@ -985,8 +986,9 @@ function StockReport() {
               {filteredCategoryReport.map((c) => {
                 const expanded = openCats[c.name] || repSearch.trim().length > 0;
                 const units = c.items.reduce((s, p) => s + p.units, 0);
-                const revenue = c.items.reduce((s, p) => s + p.revenue, 0);
-                const cost = c.items.reduce((s, p) => s + p.cost, 0);
+                const qty = c.items.reduce((s, p) => s + p.stock, 0);
+                const stockCost = c.items.reduce((s, p) => s + p.stockCost, 0);
+                const stockSale = c.items.reduce((s, p) => s + p.stockSale, 0);
                 const invoices = new Set(c.items.flatMap((p) => [...p.invoices])).size;
                 return (
                 <Fragment key={c.name}>
@@ -1001,15 +1003,17 @@ function StockReport() {
                     </td>
                     <td className="p-3 text-muted-foreground">—</td>
                     <td className="p-3 text-muted-foreground">—</td>
-                    <td className="p-3 font-bold">{formatNumber(units)}</td>
+                    <td className="p-3 font-bold">{formatNumber(qty)}</td>
+                    <td className="p-3 text-muted-foreground">{formatNumber(units)}</td>
                     <td className="p-3 text-muted-foreground">{formatNumber(invoices)}</td>
-                    <td className="p-3 font-bold text-gold">{formatSDG(revenue)}</td>
-                    <td className="p-3 text-muted-foreground">{formatSDG(cost)}</td>
-                    <td className="p-3 font-bold">{formatSDG(revenue - cost)}</td>
+                    <td className="p-3 text-muted-foreground">{formatSDG(stockCost)}</td>
+                    <td className="p-3 font-bold text-gold">{formatSDG(stockSale)}</td>
+                    <td className="p-3 font-bold">{formatSDG(stockSale - stockCost)}</td>
                   </tr>
                   {expanded && (
                     <tr className="border-b border-border/60">
-                      <td colSpan={8} className="p-3">
+                      <td colSpan={9} className="p-3">
+
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
                           {c.items.map((p) => {
                             const pr = priceOf(p.id);
