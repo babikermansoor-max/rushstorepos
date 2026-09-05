@@ -373,6 +373,8 @@ function StockReport() {
       name: string;
       barcode: string | null;
       stock: number;
+      stockCost: number;
+      stockSale: number;
       units: number;
       revenue: number;
       cost: number;
@@ -389,11 +391,14 @@ function StockReport() {
 
     for (const p of products ?? []) {
       const st = statsOf.get(p.id);
+      const qty = stockOf(p.id);
       push(p.categories?.name ?? "بدون فئة", {
         id: p.id,
         name: p.name,
         barcode: p.barcode,
-        stock: stockOf(p.id),
+        stock: qty,
+        stockCost: qty * Number(p.cost_price),
+        stockSale: qty * Number(p.sale_price),
         units: st?.units ?? 0,
         revenue: st?.revenue ?? 0,
         cost: st?.cost ?? 0,
@@ -408,12 +413,15 @@ function StockReport() {
         name: p.name,
         barcode: null,
         stock: 0,
+        stockCost: 0,
+        stockSale: 0,
         units: p.units,
         revenue: p.revenue,
         cost: p.cost,
         invoices: p.invoices,
       });
     }
+
 
     return [...map.values()]
       .map((c) => ({
@@ -916,22 +924,29 @@ function StockReport() {
         {(() => {
           const catCount = filteredCategoryReport.length;
           const prodCount = filteredCategoryReport.reduce((s, c) => s + c.items.length, 0);
-          const totalCost = filteredCategoryReport.reduce(
-            (s, c) => s + c.items.reduce((a, p) => a + p.cost, 0),
+          const totalQty = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.stock, 0),
             0,
           );
-          const totalRevenue = filteredCategoryReport.reduce(
-            (s, c) => s + c.items.reduce((a, p) => a + p.revenue, 0),
+          const totalCost = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.stockCost, 0),
+            0,
+          );
+          const totalSale = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.stockSale, 0),
             0,
           );
           const cards = [
             { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-gold bg-gold-soft text-gold" },
             { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "border-border bg-muted text-foreground" },
+            { label: "إجمالي القطع", value: formatNumber(totalQty), tone: "border-border bg-muted text-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
-            { label: "قيمة المباع (صافي)", value: formatSDG(totalRevenue), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "قيمة البيع", value: formatSDG(totalSale), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "الربح المتوقع", value: formatSDG(totalSale - totalCost), tone: "border-success/40 bg-success/10 text-success" },
             { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
-            { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "border-success/40 bg-success/10 text-success" },
           ];
+
+
           return (
             <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
 
@@ -952,17 +967,18 @@ function StockReport() {
                 <th className="p-3 font-medium">الصنف / المنتج</th>
                 <th className="p-3 font-medium">سعر الشراء</th>
                 <th className="p-3 font-medium">سعر البيع</th>
+                <th className="p-3 font-medium">الكمية في المخزن</th>
                 <th className="p-3 font-medium">القطع المباعة</th>
                 <th className="p-3 font-medium">عدد الفواتير</th>
-                <th className="p-3 font-medium">الإيراد</th>
-                <th className="p-3 font-medium">التكلفة</th>
-                <th className="p-3 font-medium">الربح</th>
+                <th className="p-3 font-medium">قيمة التكلفة</th>
+                <th className="p-3 font-medium">قيمة البيع</th>
+                <th className="p-3 font-medium">الربح المتوقع</th>
               </tr>
             </thead>
             <tbody>
               {filteredCategoryReport.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     لا توجد نتائج في هذه الفترة
                   </td>
                 </tr>
@@ -970,8 +986,9 @@ function StockReport() {
               {filteredCategoryReport.map((c) => {
                 const expanded = openCats[c.name] || repSearch.trim().length > 0;
                 const units = c.items.reduce((s, p) => s + p.units, 0);
-                const revenue = c.items.reduce((s, p) => s + p.revenue, 0);
-                const cost = c.items.reduce((s, p) => s + p.cost, 0);
+                const qty = c.items.reduce((s, p) => s + p.stock, 0);
+                const stockCost = c.items.reduce((s, p) => s + p.stockCost, 0);
+                const stockSale = c.items.reduce((s, p) => s + p.stockSale, 0);
                 const invoices = new Set(c.items.flatMap((p) => [...p.invoices])).size;
                 return (
                 <Fragment key={c.name}>
@@ -986,15 +1003,17 @@ function StockReport() {
                     </td>
                     <td className="p-3 text-muted-foreground">—</td>
                     <td className="p-3 text-muted-foreground">—</td>
-                    <td className="p-3 font-bold">{formatNumber(units)}</td>
+                    <td className="p-3 font-bold">{formatNumber(qty)}</td>
+                    <td className="p-3 text-muted-foreground">{formatNumber(units)}</td>
                     <td className="p-3 text-muted-foreground">{formatNumber(invoices)}</td>
-                    <td className="p-3 font-bold text-gold">{formatSDG(revenue)}</td>
-                    <td className="p-3 text-muted-foreground">{formatSDG(cost)}</td>
-                    <td className="p-3 font-bold">{formatSDG(revenue - cost)}</td>
+                    <td className="p-3 text-muted-foreground">{formatSDG(stockCost)}</td>
+                    <td className="p-3 font-bold text-gold">{formatSDG(stockSale)}</td>
+                    <td className="p-3 font-bold">{formatSDG(stockSale - stockCost)}</td>
                   </tr>
                   {expanded && (
                     <tr className="border-b border-border/60">
-                      <td colSpan={8} className="p-3">
+                      <td colSpan={9} className="p-3">
+
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
                           {c.items.map((p) => {
                             const pr = priceOf(p.id);
@@ -1027,8 +1046,12 @@ function StockReport() {
                                   </span>
                                 </div>
                                 <span className="text-[11px] text-muted-foreground">
-                                  إيراد: {formatSDG(p.revenue)} — ربح: {formatSDG(p.revenue - p.cost)}
+                                  قيمة التكلفة: {formatSDG(p.stockCost)} — قيمة البيع: {formatSDG(p.stockSale)}
                                 </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  الربح المتوقع: {formatSDG(p.stockSale - p.stockCost)}
+                                </span>
+
                               </button>
                             );
                           })}
