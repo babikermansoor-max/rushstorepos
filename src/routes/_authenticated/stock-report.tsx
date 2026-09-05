@@ -924,22 +924,27 @@ function StockReport() {
         {(() => {
           const catCount = filteredCategoryReport.length;
           const prodCount = filteredCategoryReport.reduce((s, c) => s + c.items.length, 0);
-          const totalCost = filteredCategoryReport.reduce(
-            (s, c) => s + c.items.reduce((a, p) => a + p.cost, 0),
+          const totalQty = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.stock, 0),
             0,
           );
-          const totalRevenue = filteredCategoryReport.reduce(
-            (s, c) => s + c.items.reduce((a, p) => a + p.revenue, 0),
+          const totalCost = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.stockCost, 0),
+            0,
+          );
+          const totalSale = filteredCategoryReport.reduce(
+            (s, c) => s + c.items.reduce((a, p) => a + p.stockSale, 0),
             0,
           );
           const cards = [
             { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-gold bg-gold-soft text-gold" },
             { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "border-border bg-muted text-foreground" },
+            { label: "إجمالي القطع", value: formatNumber(totalQty), tone: "border-border bg-muted text-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
-            { label: "قيمة المباع (صافي)", value: formatSDG(totalRevenue), tone: "border-gold bg-gold-soft text-gold" },
-            { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
-            { label: "الربح", value: formatSDG(totalRevenue - totalCost), tone: "border-success/40 bg-success/10 text-success" },
+            { label: "قيمة البيع", value: formatSDG(totalSale), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "الربح المتوقع", value: formatSDG(totalSale - totalCost), tone: "border-success/40 bg-success/10 text-success" },
           ];
+
           return (
             <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
 
