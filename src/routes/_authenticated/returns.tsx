@@ -118,12 +118,17 @@ function Returns() {
       toast.error("لا يوجد فرع محدد لإرجاع الكمية إليه");
       return;
     }
+    const amount = Number(form.amount || (unitPrice || Number(product.sale_price)) * qty);
+    const expected = (unitPrice || Number(product.sale_price)) * qty;
+    if (expected > 0 && Math.abs(amount - expected) > expected * 0.5) {
+      toast.warning("تنبيه: المبلغ المسترد لا يتناسب مع الكمية المرتجعة");
+    }
     const { error } = await supabase.from("returns").insert({
       product_id: product.id,
       product_name: product.name,
       branch_id: branchId,
       quantity: qty,
-      amount: Number(form.amount || Number(product.sale_price) * qty),
+      amount,
       reason: form.reason || null,
       created_by: user.id,
     });
@@ -135,7 +140,9 @@ function Returns() {
     toast.success("تم تسجيل المرتجع وإرجاع الكمية للمخزون");
     setOpen(false);
     setForm({ product_id: "", quantity: "1", amount: "", reason: "" });
+    setUnitPrice(0);
     setBarcode("");
+
     queryClient.invalidateQueries();
   }
 
