@@ -176,7 +176,7 @@ function Returns() {
                   <select
                     className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                     value={form.product_id}
-                    onChange={(e) => setForm({ ...form, product_id: e.target.value })}
+                    onChange={(e) => void selectProduct(e.target.value)}
                     required
                   >
                     <option value="">اختر المنتج</option>
@@ -194,7 +194,7 @@ function Returns() {
                       type="number"
                       min={1}
                       value={form.quantity}
-                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      onChange={(e) => changeQuantity(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -205,8 +205,15 @@ function Returns() {
                       onChange={(e) => setForm({ ...form, amount: e.target.value })}
                       placeholder="تلقائي حسب سعر البيع"
                     />
+                    {unitPrice > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        سعر القطعة {formatSDG(unitPrice)} — المتوقع{" "}
+                        {formatSDG(unitPrice * Math.max(1, Math.floor(Number(form.quantity || 1))))}
+                      </p>
+                    )}
                   </div>
                 </div>
+
                 <div className="space-y-1.5">
                   <Label>السبب</Label>
                   <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
