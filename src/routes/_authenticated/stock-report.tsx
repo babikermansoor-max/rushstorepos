@@ -943,7 +943,9 @@ function StockReport() {
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
             { label: "قيمة البيع", value: formatSDG(totalSale), tone: "border-gold bg-gold-soft text-gold" },
             { label: "الربح المتوقع", value: formatSDG(totalSale - totalCost), tone: "border-success/40 bg-success/10 text-success" },
+            { label: "المرتجعات", value: formatSDG(returnsTotal), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
           ];
+
 
           return (
             <div className="mb-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
