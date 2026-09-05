@@ -28,30 +28,47 @@ function isoDay(offset = 0) {
 function Reports() {
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
+  const [branch, setBranch] = useState("all");
+
+  const { data: branches } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () =>
+      (await supabase.from("branches").select("id, name, is_main").order("is_main", { ascending: false })).data ?? [],
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["reports", from, to],
+    queryKey: ["reports", from, to, branch],
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${to}T23:59:59`).toISOString();
+      let salesQ = supabase
+        .from("sales")
+        .select("id, invoice_no, total, payment_method, created_at, branch_id, branches(name)")
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .order("created_at", { ascending: false });
+      let itemsQ = supabase
+        .from("sale_items")
+        .select("product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)")
+        .gte("sales.created_at", start)
+        .lte("sales.created_at", end);
+      let retQ = supabase
+        .from("returns")
+        .select("product_id, amount, quantity, created_at, branch_id")
+        .gte("created_at", start)
+        .lte("created_at", end);
+      let expQ = supabase.from("expenses").select("amount, spent_at, branch_id").gte("spent_at", from).lte("spent_at", to);
+      if (branch !== "all") {
+        salesQ = salesQ.eq("branch_id", branch);
+        itemsQ = itemsQ.eq("sales.branch_id", branch);
+        retQ = retQ.eq("branch_id", branch);
+        expQ = expQ.eq("branch_id", branch);
+      }
       const [{ data: sales }, { data: items }, { data: rets }, { data: exps }] = await Promise.all([
-        supabase
-          .from("sales")
-          .select("id, invoice_no, total, payment_method, created_at, branches(name)")
-          .gte("created_at", start)
-          .lte("created_at", end)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("sale_items")
-          .select("product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at)")
-          .gte("sales.created_at", start)
-          .lte("sales.created_at", end),
-        supabase
-          .from("returns")
-          .select("amount, quantity, created_at")
-          .gte("created_at", start)
-          .lte("created_at", end),
-        supabase.from("expenses").select("amount, spent_at").gte("spent_at", from).lte("spent_at", to),
+        salesQ,
+        itemsQ,
+        retQ,
+        expQ,
       ]);
       const { data: prods } = await supabase.from("products").select("id, cost_price");
       return {
@@ -72,12 +89,29 @@ function Reports() {
   const netSales = total - returned;
   const expenses = (data?.expenses ?? []).reduce((s, r) => s + Number(r.amount), 0);
   // تكلفة وقت البيع إن وُجدت، وإلا التكلفة الحالية للمنتج
-  const cogs = (data?.items ?? []).reduce((s, it) => {
-    const unitCost = Number(it.unit_cost ?? 0) || (it.product_id ? (data?.costs.get(it.product_id) ?? 0) : 0);
-    return s + Number(it.quantity) * unitCost;
+  const unitCostOf = (productId: string | null, stored?: number | null) =>
+    Number(stored ?? 0) || (productId ? (data?.costs.get(productId) ?? 0) : 0);
+  const cogs = (data?.items ?? []).reduce(
+    (s, it) => s + Number(it.quantity) * unitCostOf(it.product_id, it.unit_cost),
+    0,
+  );
+  // متوسط تكلفة الوحدة المباعة لكل منتج، لخصم تكلفة المرتجع الذي عاد للمخزن
+  const soldUnitCost = new Map<string, { qty: number; cost: number }>();
+  for (const it of data?.items ?? []) {
+    if (!it.product_id) continue;
+    const cur = soldUnitCost.get(it.product_id) ?? { qty: 0, cost: 0 };
+    cur.qty += Number(it.quantity);
+    cur.cost += Number(it.quantity) * unitCostOf(it.product_id, it.unit_cost);
+    soldUnitCost.set(it.product_id, cur);
+  }
+  const returnsCost = (data?.returns ?? []).reduce((s, r) => {
+    const agg = r.product_id ? soldUnitCost.get(r.product_id) : undefined;
+    const unit = agg && agg.qty > 0 ? agg.cost / agg.qty : unitCostOf(r.product_id ?? null, 0);
+    return s + Number(r.quantity) * unit;
   }, 0);
-  const grossProfit = total - cogs;
-  const netProfit = grossProfit - returned - expenses;
+  const netCogs = Math.max(0, cogs - returnsCost);
+  const grossProfit = netSales - netCogs;
+  const netProfit = grossProfit - expenses;
 
 
   const topMap = new Map<string, { qty: number; total: number }>();
@@ -103,6 +137,21 @@ function Reports() {
           <Label>إلى</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
+        <div className="space-y-1.5">
+          <Label>الفرع</Label>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+          >
+            <option value="all">كل الفروع</option>
+            {(branches ?? []).map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -112,9 +161,12 @@ function Reports() {
         <Stat label="عدد الفواتير" value={formatNumber(sales.length)} />
         <Stat label="نقدي" value={formatSDG(cash)} />
         <Stat label="بنكك" value={formatSDG(bankak)} />
+        <Stat label="تكلفة المبيعات" value={formatSDG(netCogs)} />
+        <Stat label="مجمل الربح" value={formatSDG(grossProfit)} />
         <Stat label="المصروفات" value={formatSDG(expenses)} />
         <Stat label="صافي الربح" value={formatSDG(netProfit)} highlight />
       </div>
+
 
 
       <div className="grid gap-4 lg:grid-cols-3">

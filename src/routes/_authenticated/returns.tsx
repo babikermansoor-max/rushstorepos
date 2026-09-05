@@ -30,6 +30,7 @@ function Returns() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ product_id: "", quantity: "1", amount: "", reason: "" });
+  const [unitPrice, setUnitPrice] = useState(0);
 
   const [barcode, setBarcode] = useState("");
 
@@ -51,6 +52,23 @@ function Returns() {
     return price > 0 ? price : fallback;
   }
 
+  async function selectProduct(productId: string, addOne = false) {
+    const found = (products ?? []).find((p) => p.id === productId);
+    if (!found) return;
+    const unit = await lastSoldPrice(found.id, Number(found.sale_price));
+    setUnitPrice(unit);
+    setForm((f) => {
+      const same = f.product_id === found.id;
+      const qty = addOne ? (same ? Math.floor(Number(f.quantity || 1)) + 1 : 1) : Math.max(1, Math.floor(Number(f.quantity || 1)));
+      return { ...f, product_id: found.id, quantity: String(qty), amount: String(unit * qty) };
+    });
+  }
+
+  function changeQuantity(value: string) {
+    const qty = Math.max(1, Math.floor(Number(value || 1)));
+    setForm((f) => ({ ...f, quantity: value, amount: unitPrice > 0 ? String(unitPrice * qty) : f.amount }));
+  }
+
   async function scanBarcode(code: string) {
     const v = code.trim();
     if (!v) return;
@@ -59,15 +77,11 @@ function Returns() {
       toast.error("لا يوجد منتج بهذا الباركود");
       return;
     }
-    const unit = await lastSoldPrice(found.id, Number(found.sale_price));
-    setForm((f) => {
-      const same = f.product_id === found.id;
-      const qty = same ? Math.floor(Number(f.quantity || 1)) + 1 : 1;
-      return { ...f, product_id: found.id, quantity: String(qty), amount: String(unit * qty) };
-    });
+    await selectProduct(found.id, true);
     setBarcode("");
     toast.success(`تمت إضافة ${found.name}`);
   }
+
 
 
 
@@ -104,12 +118,17 @@ function Returns() {
       toast.error("لا يوجد فرع محدد لإرجاع الكمية إليه");
       return;
     }
+    const amount = Number(form.amount || (unitPrice || Number(product.sale_price)) * qty);
+    const expected = (unitPrice || Number(product.sale_price)) * qty;
+    if (expected > 0 && Math.abs(amount - expected) > expected * 0.5) {
+      toast.warning("تنبيه: المبلغ المسترد لا يتناسب مع الكمية المرتجعة");
+    }
     const { error } = await supabase.from("returns").insert({
       product_id: product.id,
       product_name: product.name,
       branch_id: branchId,
       quantity: qty,
-      amount: Number(form.amount || Number(product.sale_price) * qty),
+      amount,
       reason: form.reason || null,
       created_by: user.id,
     });
@@ -121,7 +140,9 @@ function Returns() {
     toast.success("تم تسجيل المرتجع وإرجاع الكمية للمخزون");
     setOpen(false);
     setForm({ product_id: "", quantity: "1", amount: "", reason: "" });
+    setUnitPrice(0);
     setBarcode("");
+
     queryClient.invalidateQueries();
   }
 
@@ -162,7 +183,7 @@ function Returns() {
                   <select
                     className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                     value={form.product_id}
-                    onChange={(e) => setForm({ ...form, product_id: e.target.value })}
+                    onChange={(e) => void selectProduct(e.target.value)}
                     required
                   >
                     <option value="">اختر المنتج</option>
@@ -180,7 +201,7 @@ function Returns() {
                       type="number"
                       min={1}
                       value={form.quantity}
-                      onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                      onChange={(e) => changeQuantity(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -191,8 +212,15 @@ function Returns() {
                       onChange={(e) => setForm({ ...form, amount: e.target.value })}
                       placeholder="تلقائي حسب سعر البيع"
                     />
+                    {unitPrice > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        سعر القطعة {formatSDG(unitPrice)} — المتوقع{" "}
+                        {formatSDG(unitPrice * Math.max(1, Math.floor(Number(form.quantity || 1))))}
+                      </p>
+                    )}
                   </div>
                 </div>
+
                 <div className="space-y-1.5">
                   <Label>السبب</Label>
                   <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
