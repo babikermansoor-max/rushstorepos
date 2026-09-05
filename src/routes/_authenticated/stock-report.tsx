@@ -1046,8 +1046,12 @@ function StockReport() {
                                   </span>
                                 </div>
                                 <span className="text-[11px] text-muted-foreground">
-                                  إيراد: {formatSDG(p.revenue)} — ربح: {formatSDG(p.revenue - p.cost)}
+                                  قيمة التكلفة: {formatSDG(p.stockCost)} — قيمة البيع: {formatSDG(p.stockSale)}
                                 </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  الربح المتوقع: {formatSDG(p.stockSale - p.stockCost)}
+                                </span>
+
                               </button>
                             );
                           })}
