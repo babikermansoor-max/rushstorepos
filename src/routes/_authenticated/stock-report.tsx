@@ -373,6 +373,8 @@ function StockReport() {
       name: string;
       barcode: string | null;
       stock: number;
+      stockCost: number;
+      stockSale: number;
       units: number;
       revenue: number;
       cost: number;
@@ -389,11 +391,14 @@ function StockReport() {
 
     for (const p of products ?? []) {
       const st = statsOf.get(p.id);
+      const qty = stockOf(p.id);
       push(p.categories?.name ?? "بدون فئة", {
         id: p.id,
         name: p.name,
         barcode: p.barcode,
-        stock: stockOf(p.id),
+        stock: qty,
+        stockCost: qty * Number(p.cost_price),
+        stockSale: qty * Number(p.sale_price),
         units: st?.units ?? 0,
         revenue: st?.revenue ?? 0,
         cost: st?.cost ?? 0,
@@ -408,12 +413,15 @@ function StockReport() {
         name: p.name,
         barcode: null,
         stock: 0,
+        stockCost: 0,
+        stockSale: 0,
         units: p.units,
         revenue: p.revenue,
         cost: p.cost,
         invoices: p.invoices,
       });
     }
+
 
     return [...map.values()]
       .map((c) => ({
