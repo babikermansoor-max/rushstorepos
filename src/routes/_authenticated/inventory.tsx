@@ -1,84 +1,144 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
-import { formatSDG } from "@/lib/format";
+import { formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_authenticated/inventory")({
   head: () => ({
     meta: [
-      { title: "المخزون — Rush Store" },
-      { name: "description", content: "إدارة المنتجات والكميات في كل فرع مع الأسعار والأرباح." },
-      { property: "og:title", content: "المخزون — Rush Store" },
-      { property: "og:description", content: "إدارة المنتجات والكميات في كل فرع." },
+      { title: "المخزون والجرد — Rush Store" },
+      { name: "description", content: "جرد المنتجات وتصحيح الكميات في كل فرع مع الأسعار." },
+      { property: "og:title", content: "المخزون والجرد — Rush Store" },
+      { property: "og:description", content: "جرد المنتجات وتصحيح الكميات في الفروع." },
     ],
   }),
   component: Inventory,
 });
+
+type ProductRow = {
+  id: string;
+  name: string;
+  barcode: string | null;
+  cost_price: number;
+  sale_price: number;
+  categories: { name: string } | null;
+  stock: { quantity: number; branch_id: string }[];
+};
 
 function Inventory() {
   const { user } = useSession();
   const { data: me } = useProfile(user?.id);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [branch, setBranch] = useState("");
+  const [counts, setCounts] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
     queryFn: async () => (await supabase.from("branches").select("id, name").order("name")).data ?? [],
   });
 
+  useEffect(() => {
+    if (branch) return;
+    const preferred = me?.profile?.branch_id ?? branches?.[0]?.id;
+    if (preferred) setBranch(preferred);
+  }, [branch, branches, me?.profile?.branch_id]);
+
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () =>
-      (
+      ((
         await supabase
           .from("products")
-          .select("id, name, barcode, cost_price, sale_price, categories(name), stock(quantity, branches(name))")
+          .select("id, name, barcode, cost_price, sale_price, categories(name), stock(quantity, branch_id)")
           .order("name")
-      ).data ?? [],
+      ).data ?? []) as unknown as ProductRow[],
   });
 
-  const rows = (products ?? []).filter(
-    (p) =>
-      !search.trim() ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.barcode ?? "").includes(search),
-  );
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (products ?? [])
+      .filter((p) => !term || p.name.toLowerCase().includes(term) || (p.barcode ?? "").includes(search.trim()))
+      .map((p) => ({
+        ...p,
+        recorded: p.stock.find((s) => s.branch_id === branch)?.quantity ?? 0,
+      }));
+  }, [products, search, branch]);
 
-  async function updateStock(productId: string, branchName: string, quantity: number) {
-    const branch = (branches ?? []).find((b) => b.name === branchName);
-    if (!branch) return;
-    const { error } = await supabase
-      .from("stock")
-      .upsert({ product_id: productId, branch_id: branch.id, quantity });
-    if (error) toast.error(error.message);
-    else {
-      toast.success("تم تحديث الكمية");
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+  const changed = rows.filter((r) => {
+    const raw = counts[r.id];
+    if (raw === undefined || raw === "") return false;
+    const v = Math.floor(Number(raw));
+    return Number.isFinite(v) && v >= 0 && v !== r.recorded;
+  });
+
+  async function saveCount() {
+    if (!branch || changed.length === 0) return;
+    setSaving(true);
+    const { error } = await supabase.from("stock").upsert(
+      changed.map((r) => ({
+        product_id: r.id,
+        branch_id: branch,
+        quantity: Math.floor(Number(counts[r.id])),
+      })),
+      { onConflict: "product_id,branch_id" },
+    );
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
     }
+    toast.success(`تم حفظ الجرد لـ ${changed.length} منتج`);
+    setCounts({});
+    queryClient.invalidateQueries();
   }
 
   return (
     <div>
-      <PageHeader
-        title="المخزون"
-        subtitle="المنتجات والكميات في الفروع"
-      />
+      <PageHeader title="المخزون والجرد" subtitle="إدخال الكمية الفعلية ومقارنتها بالمسجل" />
 
       <div className="surface p-4">
-        <div className="relative mb-4">
-          <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="بحث بالاسم أو الباركود..."
-            className="pr-9"
-          />
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div className="relative min-w-56 flex-1">
+            <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث بالاسم أو الباركود..."
+              className="pr-9"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>الفرع</Label>
+            <select
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              value={branch}
+              onChange={(e) => {
+                setBranch(e.target.value);
+                setCounts({});
+              }}
+            >
+              {(branches ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {me?.isAdmin && (
+            <Button onClick={saveCount} disabled={saving || changed.length === 0}>
+              حفظ الجرد {changed.length > 0 ? `(${changed.length})` : ""}
+            </Button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -89,60 +149,74 @@ function Inventory() {
                 <th className="p-3 font-medium">الصنف</th>
                 <th className="p-3 font-medium">الشراء</th>
                 <th className="p-3 font-medium">البيع</th>
-                <th className="p-3 font-medium">الكميات</th>
+                <th className="p-3 font-medium">المسجل</th>
+                <th className="p-3 font-medium">الفعلي</th>
+                <th className="p-3 font-medium">الفرق</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     جارٍ التحميل...
                   </td>
                 </tr>
               )}
-              {rows.map((p) => (
-                <tr key={p.id} className="border-b border-border/60 last:border-0">
-                  <td className="p-3">
-                    <p className="font-semibold">{p.name}</p>
-                    <p className="text-xs text-muted-foreground" dir="ltr">
-                      {p.barcode ?? "—"}
-                    </p>
-                  </td>
-                  <td className="p-3 text-muted-foreground">
-                    {(p.categories as { name: string } | null)?.name ?? "—"}
-                  </td>
-                  <td className="p-3">{formatSDG(Number(p.cost_price))}</td>
-                  <td className="p-3 font-semibold text-gold">{formatSDG(Number(p.sale_price))}</td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-2">
-                      {((p.stock as { quantity: number; branches: { name: string } | null }[]) ?? []).map((s, i) => (
-                        <span
-                          key={i}
-                          className={`rounded-full px-2.5 py-1 text-xs ${
-                            s.quantity <= 5 ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {s.branches?.name}: {s.quantity}
-                          {me?.isAdmin && (
-                            <button
-                              className="mr-2 underline"
-                              onClick={() => {
-                                const v = window.prompt("الكمية الجديدة", String(s.quantity));
-                                if (v !== null && s.branches) updateStock(p.id, s.branches.name, Number(v));
-                              }}
-                            >
-                              تعديل
-                            </button>
-                          )}
-                        </span>
-                      ))}
-                      {((p.stock as unknown[]) ?? []).length === 0 && (
-                        <span className="text-xs text-muted-foreground">لا يوجد مخزون</span>
-                      )}
-                    </div>
+              {!isLoading && rows.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    لا توجد منتجات
                   </td>
                 </tr>
-              ))}
+              )}
+              {rows.map((p) => {
+                const raw = counts[p.id];
+                const actual = raw === undefined || raw === "" ? null : Math.floor(Number(raw));
+                const diff = actual === null || !Number.isFinite(actual) ? null : actual - p.recorded;
+                return (
+                  <tr key={p.id} className="border-b border-border/60 last:border-0">
+                    <td className="p-3">
+                      <p className="font-semibold">{p.name}</p>
+                      <p className="text-xs text-muted-foreground" dir="ltr">
+                        {p.barcode ?? "—"}
+                      </p>
+                    </td>
+                    <td className="p-3 text-muted-foreground">{p.categories?.name ?? "—"}</td>
+                    <td className="p-3">{formatSDG(Number(p.cost_price))}</td>
+                    <td className="p-3 font-semibold text-gold">{formatSDG(Number(p.sale_price))}</td>
+                    <td className="p-3 font-semibold">{formatNumber(p.recorded)}</td>
+                    <td className="p-3">
+                      {me?.isAdmin ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          className="h-9 w-24"
+                          placeholder={String(p.recorded)}
+                          value={raw ?? ""}
+                          onChange={(e) => setCounts({ ...counts, [p.id]: e.target.value })}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {diff === null || diff === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            diff > 0 ? "bg-primary/15 text-primary" : "bg-destructive/10 text-destructive"
+                          }`}
+                          dir="ltr"
+                        >
+                          {diff > 0 ? "+" : ""}
+                          {diff}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
