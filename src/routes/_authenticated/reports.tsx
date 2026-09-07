@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppLayout";
+import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 import { PAYMENT_LABELS, formatDateTime, formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,13 +44,17 @@ function Reports() {
       const end = new Date(`${to}T23:59:59`).toISOString();
       let salesQ = supabase
         .from("sales")
-        .select("id, invoice_no, total, payment_method, created_at, branch_id, branches(name)")
+        .select(
+          "id, invoice_no, total, payment_method, created_at, branch_id, cashier_id, customer_name, branches(name)",
+        )
         .gte("created_at", start)
         .lte("created_at", end)
         .order("created_at", { ascending: false });
       let itemsQ = supabase
         .from("sale_items")
-        .select("product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)")
+        .select(
+          "sale_id, product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)",
+        )
         .gte("sales.created_at", start)
         .lte("sales.created_at", end);
       let retQ = supabase
@@ -71,12 +76,17 @@ function Reports() {
         expQ,
       ]);
       const { data: prods } = await supabase.from("products").select("id, cost_price");
+      const cashierIds = [...new Set((sales ?? []).map((s) => s.cashier_id).filter(Boolean))] as string[];
+      const { data: profs } = cashierIds.length
+        ? await supabase.from("profiles").select("id, full_name, username").in("id", cashierIds)
+        : { data: [] as { id: string; full_name: string; username: string | null }[] };
       return {
         sales: sales ?? [],
         items: items ?? [],
         returns: rets ?? [],
         expenses: exps ?? [],
         costs: new Map((prods ?? []).map((p) => [p.id, Number(p.cost_price)])),
+        names: new Map((profs ?? []).map((p) => [p.id, p.full_name || p.username || "—"])),
       };
     },
   });
@@ -122,6 +132,28 @@ function Reports() {
     topMap.set(it.product_name, cur);
   }
   const top = [...topMap.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
+
+  const invoices = useMemo(() => {
+    const itemsBySale = new Map<string, { name: string; qty: number; price: number }[]>();
+    for (const it of data?.items ?? []) {
+      const list = itemsBySale.get(it.sale_id) ?? [];
+      list.push({ name: it.product_name, qty: Number(it.quantity), price: Number(it.unit_price) });
+      itemsBySale.set(it.sale_id, list);
+    }
+    return (data?.sales ?? []).map<ReceiptData & { id: string }>((s) => ({
+      id: s.id,
+      invoiceNo: s.invoice_no,
+      createdAt: s.created_at,
+      branch: (s.branches as { name: string } | null)?.name ?? "—",
+      cashier: data?.names.get(s.cashier_id ?? "") ?? "—",
+      customer: s.customer_name,
+      paymentMethod: s.payment_method,
+      items: itemsBySale.get(s.id) ?? [],
+      total: Number(s.total),
+    }));
+  }, [data]);
+
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
 
 
   return (
@@ -209,44 +241,51 @@ function Reports() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="surface p-4 lg:col-span-2">
-          <h2 className="mb-3 font-bold">الفواتير</h2>
+          <h2 className="font-bold">الفواتير</h2>
+          <p className="mb-3 text-sm text-muted-foreground">اضغط على الفاتورة لعرضها وطباعتها</p>
           <div className="max-h-[28rem] overflow-auto">
             <table className="w-full text-right text-sm">
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="p-3 font-medium">الفاتورة</th>
-                  <th className="p-3 font-medium">الفرع</th>
-                  <th className="p-3 font-medium">الدفع</th>
-                  <th className="p-3 font-medium">الإجمالي</th>
+                  <th className="p-3 font-medium">رقم الفاتورة</th>
                   <th className="p-3 font-medium">التاريخ</th>
+                  <th className="p-3 font-medium">الفرع</th>
+                  <th className="p-3 font-medium">الحساب الذي باع</th>
+                  <th className="p-3 font-medium">الدفع</th>
+                  <th className="p-3 font-medium">الأصناف</th>
+                  <th className="p-3 font-medium">الإجمالي</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       جارٍ التحميل...
                     </td>
                   </tr>
                 )}
-                {!isLoading && sales.length === 0 && (
+                {!isLoading && invoices.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                      لا توجد مبيعات في هذه الفترة
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                      لا توجد فواتير في هذه الفترة
                     </td>
                   </tr>
                 )}
-                {sales.map((s) => (
-                  <tr key={s.id} className="border-b border-border/60 last:border-0">
-                    <td className="p-3 font-semibold" dir="ltr">
-                      #{s.invoice_no}
+                {invoices.map((inv) => (
+                  <tr
+                    key={inv.id}
+                    onClick={() => setReceipt(inv)}
+                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
+                  >
+                    <td className="p-3 font-bold" dir="ltr">
+                      #{inv.invoiceNo}
                     </td>
-                    <td className="p-3 text-muted-foreground">
-                      {(s.branches as { name: string } | null)?.name ?? "—"}
-                    </td>
-                    <td className="p-3">{PAYMENT_LABELS[s.payment_method] ?? s.payment_method}</td>
-                    <td className="p-3 font-bold text-gold">{formatSDG(Number(s.total))}</td>
-                    <td className="p-3 text-xs text-muted-foreground">{formatDateTime(s.created_at)}</td>
+                    <td className="p-3 text-xs text-muted-foreground">{formatDateTime(inv.createdAt)}</td>
+                    <td className="p-3 text-muted-foreground">{inv.branch}</td>
+                    <td className="p-3">{inv.cashier}</td>
+                    <td className="p-3">{PAYMENT_LABELS[inv.paymentMethod] ?? inv.paymentMethod}</td>
+                    <td className="p-3">{formatNumber(inv.items.length)}</td>
+                    <td className="p-3 font-bold text-gold">{formatSDG(inv.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -270,6 +309,8 @@ function Reports() {
           </ul>
         </div>
       </div>
+
+      <ReceiptDialog data={receipt} open={!!receipt} onOpenChange={(v) => !v && setReceipt(null)} autoPrint={false} />
     </div>
   );
 }

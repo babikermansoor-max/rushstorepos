@@ -1091,47 +1091,7 @@ function StockReport() {
       </div>
 
 
-      <div className="surface mb-4 p-4">
-        <h2 className="font-bold">الفواتير</h2>
-        <p className="mb-3 text-sm text-muted-foreground">اضغط على الفاتورة لعرضها وطباعتها</p>
-        <div className="max-h-[24rem] overflow-auto">
-          <table className="w-full text-right text-sm">
-            <thead className="sticky top-0 bg-card">
-              <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="p-3 font-medium">رقم الفاتورة</th>
-                <th className="p-3 font-medium">التاريخ</th>
-                <th className="p-3 font-medium">الفرع</th>
-                <th className="p-3 font-medium">الحساب الذي باع</th>
-                <th className="p-3 font-medium">الأصناف</th>
-                <th className="p-3 font-medium">الإجمالي</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    لا توجد فواتير في هذه الفترة
-                  </td>
-                </tr>
-              )}
-              {invoices.map((inv) => (
-                <tr
-                  key={String(inv.invoiceNo)}
-                  onClick={() => setReceipt(inv)}
-                  className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
-                >
-                  <td className="p-3 font-bold">#{inv.invoiceNo}</td>
-                  <td className="p-3 text-muted-foreground">{formatDate(new Date(inv.createdAt))}</td>
-                  <td className="p-3 text-muted-foreground">{inv.branch}</td>
-                  <td className="p-3">{inv.cashier}</td>
-                  <td className="p-3">{formatNumber(inv.items.length)}</td>
-                  <td className="p-3 font-bold text-gold">{formatSDG(inv.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
 
       <div className="surface p-4">
         <h2 className="mb-3 font-bold">تفاصيل الجرد</h2>
