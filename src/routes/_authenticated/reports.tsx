@@ -44,13 +44,17 @@ function Reports() {
       const end = new Date(`${to}T23:59:59`).toISOString();
       let salesQ = supabase
         .from("sales")
-        .select("id, invoice_no, total, payment_method, created_at, branch_id, branches(name)")
+        .select(
+          "id, invoice_no, total, payment_method, created_at, branch_id, cashier_id, customer_name, branches(name)",
+        )
         .gte("created_at", start)
         .lte("created_at", end)
         .order("created_at", { ascending: false });
       let itemsQ = supabase
         .from("sale_items")
-        .select("product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)")
+        .select(
+          "sale_id, product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)",
+        )
         .gte("sales.created_at", start)
         .lte("sales.created_at", end);
       let retQ = supabase
@@ -72,12 +76,17 @@ function Reports() {
         expQ,
       ]);
       const { data: prods } = await supabase.from("products").select("id, cost_price");
+      const cashierIds = [...new Set((sales ?? []).map((s) => s.cashier_id).filter(Boolean))] as string[];
+      const { data: profs } = cashierIds.length
+        ? await supabase.from("profiles").select("id, full_name, username").in("id", cashierIds)
+        : { data: [] as { id: string; full_name: string; username: string | null }[] };
       return {
         sales: sales ?? [],
         items: items ?? [],
         returns: rets ?? [],
         expenses: exps ?? [],
         costs: new Map((prods ?? []).map((p) => [p.id, Number(p.cost_price)])),
+        names: new Map((profs ?? []).map((p) => [p.id, p.full_name || p.username || "—"])),
       };
     },
   });
