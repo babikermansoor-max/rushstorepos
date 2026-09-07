@@ -547,11 +547,8 @@ function StockReport() {
       toast.error("سعر البيع أقل من سعر الشراء");
       return;
     }
-    const qty = Math.floor(Number(editForm.quantity || 0));
-    if (!Number.isFinite(qty) || qty < 0) {
-      toast.error("أدخل كمية صحيحة");
-      return;
-    }
+    setSaving(true);
+
     setSaving(true);
     const { error } = await supabase
       .from("products")
