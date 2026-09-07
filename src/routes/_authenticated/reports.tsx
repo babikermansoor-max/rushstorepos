@@ -126,7 +126,10 @@ function Reports() {
 
   return (
     <div>
-      <PageHeader title="التقارير" subtitle="المبيعات والأداء خلال الفترة المحددة" />
+      <PageHeader
+        title="التقارير"
+        subtitle={from === to ? `تقرير يوم ${from}` : `من ${from} إلى ${to}`}
+      />
 
       <div className="surface mb-4 flex flex-wrap items-end gap-4 p-4">
         <div className="space-y-1.5">
@@ -152,7 +155,42 @@ function Reports() {
             ))}
           </select>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "اليوم", from: isoDay(), to: isoDay() },
+            { label: "أمس", from: isoDay(-1), to: isoDay(-1) },
+            { label: "آخر 7 أيام", from: isoDay(-6), to: isoDay() },
+            { label: "هذا الشهر", from: `${isoDay().slice(0, 8)}01`, to: isoDay() },
+          ].map((p) => {
+            const active = from === p.from && to === p.to;
+            return (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => {
+                  setFrom(p.from);
+                  setTo(p.to);
+                }}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setTo(from)}
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted"
+          >
+            يوم واحد
+          </button>
+        </div>
       </div>
+
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="إجمالي المبيعات" value={formatSDG(total)} highlight />

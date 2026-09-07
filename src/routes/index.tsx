@@ -34,8 +34,10 @@ function Landing() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/dashboard", replace: true });
+    if (loading) return;
+    navigate({ to: session ? "/dashboard" : "/auth", replace: true });
   }, [loading, session, navigate]);
+
 
   return (
     <div className="min-h-screen bg-secondary text-secondary-foreground">
