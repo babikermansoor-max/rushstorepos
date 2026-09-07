@@ -549,7 +549,6 @@ function StockReport() {
     }
     setSaving(true);
 
-    setSaving(true);
     const { error } = await supabase
       .from("products")
       .update({
