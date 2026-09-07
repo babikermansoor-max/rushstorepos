@@ -133,6 +133,28 @@ function Reports() {
   }
   const top = [...topMap.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
 
+  const invoices = useMemo(() => {
+    const itemsBySale = new Map<string, { name: string; qty: number; price: number }[]>();
+    for (const it of data?.items ?? []) {
+      const list = itemsBySale.get(it.sale_id) ?? [];
+      list.push({ name: it.product_name, qty: Number(it.quantity), price: Number(it.unit_price) });
+      itemsBySale.set(it.sale_id, list);
+    }
+    return (data?.sales ?? []).map<ReceiptData & { id: string }>((s) => ({
+      id: s.id,
+      invoiceNo: s.invoice_no,
+      createdAt: s.created_at,
+      branch: (s.branches as { name: string } | null)?.name ?? "—",
+      cashier: data?.names.get(s.cashier_id ?? "") ?? "—",
+      customer: s.customer_name,
+      paymentMethod: s.payment_method,
+      items: itemsBySale.get(s.id) ?? [],
+      total: Number(s.total),
+    }));
+  }, [data]);
+
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+
 
   return (
     <div>
