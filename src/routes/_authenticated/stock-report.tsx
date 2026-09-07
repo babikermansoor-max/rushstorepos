@@ -571,22 +571,48 @@ function StockReport() {
       return;
     }
 
-    const target = editRow.branchId || (branch !== "all" ? branch : me?.profile?.branch_id) || null;
-    if (target && qty !== editRow.quantity) {
-      const { error: stockError } = await supabase
-        .from("stock")
-        .upsert({ product_id: editRow.product.id, branch_id: target, quantity: qty }, { onConflict: "product_id,branch_id" });
-      if (stockError) {
-        setSaving(false);
-        toast.error(stockError.message);
-        return;
-      }
-    }
     setSaving(false);
     toast.success("تم حفظ التعديلات");
     setEditRow(null);
     queryClient.invalidateQueries();
   }
+
+  async function deleteProduct() {
+    if (!editRow) return;
+    if (!window.confirm(`حذف المنتج "${editRow.product.name}" نهائياً؟`)) return;
+    setSaving(true);
+    await supabase.from("stock").delete().eq("product_id", editRow.product.id);
+    const { error } = await supabase.from("products").delete().eq("id", editRow.product.id);
+    setSaving(false);
+    if (error) {
+      if (error.code === "23503") {
+        if (
+          window.confirm(
+            "المنتج مرتبط بفواتير سابقة ولا يمكن حذفه حتى لا تتأثر التقارير. هل تريد إيقافه وإخفاءه من البيع؟",
+          )
+        ) {
+          const { error: offError } = await supabase
+            .from("products")
+            .update({ is_active: false })
+            .eq("id", editRow.product.id);
+          if (offError) {
+            toast.error(offError.message);
+            return;
+          }
+          toast.success("تم إيقاف المنتج");
+          setEditRow(null);
+          queryClient.invalidateQueries();
+        }
+        return;
+      }
+      toast.error(error.message);
+      return;
+    }
+    toast.success("تم حذف المنتج");
+    setEditRow(null);
+    queryClient.invalidateQueries();
+  }
+
 
 
   async function addCategory(e: React.FormEvent) {
@@ -1261,19 +1287,21 @@ function StockReport() {
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>الكمية ({editRow?.branchName})</Label>
-              <Input
-                type="number"
-                min={0}
-                value={editForm.quantity}
-                onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-              />
+            <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+              تعديل الكميات والجرد صار من صفحة المخزون.
+            </p>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1" disabled={saving}>
+                حفظ التعديلات
+              </Button>
+              {me?.isOwner && (
+                <Button type="button" variant="destructive" disabled={saving} onClick={deleteProduct}>
+                  حذف
+                </Button>
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={saving}>
-              حفظ التعديلات
-            </Button>
           </form>
+
         </DialogContent>
       </Dialog>
 
