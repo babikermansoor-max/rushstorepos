@@ -241,44 +241,51 @@ function Reports() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="surface p-4 lg:col-span-2">
-          <h2 className="mb-3 font-bold">الفواتير</h2>
+          <h2 className="font-bold">الفواتير</h2>
+          <p className="mb-3 text-sm text-muted-foreground">اضغط على الفاتورة لعرضها وطباعتها</p>
           <div className="max-h-[28rem] overflow-auto">
             <table className="w-full text-right text-sm">
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b border-border text-xs text-muted-foreground">
-                  <th className="p-3 font-medium">الفاتورة</th>
-                  <th className="p-3 font-medium">الفرع</th>
-                  <th className="p-3 font-medium">الدفع</th>
-                  <th className="p-3 font-medium">الإجمالي</th>
+                  <th className="p-3 font-medium">رقم الفاتورة</th>
                   <th className="p-3 font-medium">التاريخ</th>
+                  <th className="p-3 font-medium">الفرع</th>
+                  <th className="p-3 font-medium">الحساب الذي باع</th>
+                  <th className="p-3 font-medium">الدفع</th>
+                  <th className="p-3 font-medium">الأصناف</th>
+                  <th className="p-3 font-medium">الإجمالي</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       جارٍ التحميل...
                     </td>
                   </tr>
                 )}
-                {!isLoading && sales.length === 0 && (
+                {!isLoading && invoices.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                      لا توجد مبيعات في هذه الفترة
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                      لا توجد فواتير في هذه الفترة
                     </td>
                   </tr>
                 )}
-                {sales.map((s) => (
-                  <tr key={s.id} className="border-b border-border/60 last:border-0">
-                    <td className="p-3 font-semibold" dir="ltr">
-                      #{s.invoice_no}
+                {invoices.map((inv) => (
+                  <tr
+                    key={inv.id}
+                    onClick={() => setReceipt(inv)}
+                    className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
+                  >
+                    <td className="p-3 font-bold" dir="ltr">
+                      #{inv.invoiceNo}
                     </td>
-                    <td className="p-3 text-muted-foreground">
-                      {(s.branches as { name: string } | null)?.name ?? "—"}
-                    </td>
-                    <td className="p-3">{PAYMENT_LABELS[s.payment_method] ?? s.payment_method}</td>
-                    <td className="p-3 font-bold text-gold">{formatSDG(Number(s.total))}</td>
-                    <td className="p-3 text-xs text-muted-foreground">{formatDateTime(s.created_at)}</td>
+                    <td className="p-3 text-xs text-muted-foreground">{formatDateTime(inv.createdAt)}</td>
+                    <td className="p-3 text-muted-foreground">{inv.branch}</td>
+                    <td className="p-3">{inv.cashier}</td>
+                    <td className="p-3">{PAYMENT_LABELS[inv.paymentMethod] ?? inv.paymentMethod}</td>
+                    <td className="p-3">{formatNumber(inv.items.length)}</td>
+                    <td className="p-3 font-bold text-gold">{formatSDG(inv.total)}</td>
                   </tr>
                 ))}
               </tbody>
