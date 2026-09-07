@@ -309,6 +309,8 @@ function Reports() {
           </ul>
         </div>
       </div>
+
+      <ReceiptDialog data={receipt} open={!!receipt} onOpenChange={(v) => !v && setReceipt(null)} autoPrint={false} />
     </div>
   );
 }
