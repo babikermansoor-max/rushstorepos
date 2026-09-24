@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
-import { PageHeader } from "@/components/AppLayout";
+import { PageHeader, RequireAdmin } from "@/components/AppLayout";
 import { formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

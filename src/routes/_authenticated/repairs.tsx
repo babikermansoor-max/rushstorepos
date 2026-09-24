@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
-import { PageHeader } from "@/components/AppLayout";
+import { PageHeader, RequireAdmin } from "@/components/AppLayout";
 import { formatDateTime, formatSDG, REPAIR_STATUS_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
