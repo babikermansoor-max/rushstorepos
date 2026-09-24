@@ -22,7 +22,11 @@ export const Route = createFileRoute("/_authenticated/repairs")({
       { property: "og:description", content: "متابعة أجهزة الصيانة من الاستلام حتى التسليم." },
     ],
   }),
-  component: Repairs,
+  component: () => (
+    <RequireAdmin>
+      <Repairs />
+    </RequireAdmin>
+  ),
 });
 
 const STATUSES = ["received", "in_progress", "done", "delivered", "cancelled"] as const;

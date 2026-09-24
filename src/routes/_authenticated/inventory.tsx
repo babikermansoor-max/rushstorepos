@@ -20,7 +20,11 @@ export const Route = createFileRoute("/_authenticated/inventory")({
       { property: "og:description", content: "جرد المنتجات وتصحيح الكميات في الفروع." },
     ],
   }),
-  component: Inventory,
+  component: () => (
+    <RequireAdmin>
+      <Inventory />
+    </RequireAdmin>
+  ),
 });
 
 type ProductRow = {

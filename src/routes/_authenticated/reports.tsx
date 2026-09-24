@@ -17,7 +17,11 @@ export const Route = createFileRoute("/_authenticated/reports")({
       { property: "og:description", content: "تقارير المبيعات والأرباح وأفضل المنتجات." },
     ],
   }),
-  component: Reports,
+  component: () => (
+    <RequireAdmin>
+      <Reports />
+    </RequireAdmin>
+  ),
 });
 
 function isoDay(offset = 0) {

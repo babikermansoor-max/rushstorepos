@@ -25,7 +25,11 @@ export const Route = createFileRoute("/_authenticated/stock-report")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: StockReport,
+  component: () => (
+    <RequireAdmin>
+      <StockReport />
+    </RequireAdmin>
+  ),
 });
 
 type Product = {

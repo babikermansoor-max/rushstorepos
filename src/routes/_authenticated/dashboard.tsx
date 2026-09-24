@@ -15,7 +15,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { property: "og:description", content: "ملخص مبيعات اليوم وطرق الدفع وحركة المتجر." },
     ],
   }),
-  component: Dashboard,
+  component: () => (
+    <RequireAdmin>
+      <Dashboard />
+    </RequireAdmin>
+  ),
 });
 
 function startOfToday() {
