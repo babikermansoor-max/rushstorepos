@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
-import { PageHeader } from "@/components/AppLayout";
+import { PageHeader, RequireAdmin } from "@/components/AppLayout";
 import { formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,11 @@ export const Route = createFileRoute("/_authenticated/inventory")({
       { property: "og:description", content: "جرد المنتجات وتصحيح الكميات في الفروع." },
     ],
   }),
-  component: Inventory,
+  component: () => (
+    <RequireAdmin>
+      <Inventory />
+    </RequireAdmin>
+  ),
 });
 
 type ProductRow = {

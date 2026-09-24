@@ -19,16 +19,31 @@ import { useProfile, useSession } from "@/hooks/useSession";
 import { ROLE_LABELS } from "@/lib/format";
 
 const NAV = [
-  { to: "/dashboard", label: "لوحة التحكم", icon: LayoutGrid, admin: false },
+  { to: "/dashboard", label: "لوحة التحكم", icon: LayoutGrid, admin: true },
   { to: "/pos", label: "نقطة البيع", icon: ShoppingCart, admin: false },
   { to: "/returns", label: "المرتجعات", icon: Undo2, admin: false },
-  { to: "/inventory", label: "المخزون", icon: Package, admin: false },
-  { to: "/repairs", label: "الإصلاحات", icon: Wrench, admin: false },
-  { to: "/reports", label: "التقارير", icon: BarChart3, admin: false },
-  { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: false },
+  { to: "/inventory", label: "المخزون", icon: Package, admin: true },
+  { to: "/repairs", label: "الإصلاحات", icon: Wrench, admin: true },
+  { to: "/reports", label: "التقارير", icon: BarChart3, admin: true },
+  { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: true },
   { to: "/expenses", label: "المنصرفات", icon: Wallet, admin: false },
   { to: "/users", label: "الموظفين والفروع", icon: Users, admin: true },
 ] as const;
+
+/** يمنع غير المالك/المدير من فتح صفحات الإدارة حتى لو كتب الرابط مباشرة. */
+export function RequireAdmin({ children }: { children: ReactNode }) {
+  const { user } = useSession();
+  const { data, isLoading } = useProfile(user?.id);
+  if (isLoading) return <p className="text-sm text-muted-foreground">جارٍ التحميل...</p>;
+  if (!data?.isAdmin)
+    return (
+      <div className="surface p-8 text-center">
+        <h1 className="text-lg font-bold">لا تملك صلاحية الوصول</h1>
+        <p className="mt-1 text-sm text-muted-foreground">هذه الصفحة مخصصة للمالك والمدير فقط.</p>
+      </div>
+    );
+  return <>{children}</>;
+}
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { user } = useSession();

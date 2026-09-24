@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
-import { PageHeader } from "@/components/AppLayout";
+import { PageHeader, RequireAdmin } from "@/components/AppLayout";
 import { formatDateTime, formatSDG, REPAIR_STATUS_LABELS } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,11 @@ export const Route = createFileRoute("/_authenticated/repairs")({
       { property: "og:description", content: "متابعة أجهزة الصيانة من الاستلام حتى التسليم." },
     ],
   }),
-  component: Repairs,
+  component: () => (
+    <RequireAdmin>
+      <Repairs />
+    </RequireAdmin>
+  ),
 });
 
 const STATUSES = ["received", "in_progress", "done", "delivered", "cancelled"] as const;
