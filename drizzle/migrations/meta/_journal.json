@@ -8,6 +8,13 @@
       "when": 1790245088330,
       "tag": "0000_restrict_shared_reads_to_approved_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790246958044,
+      "tag": "0001_cashier_scope",
+      "breakpoints": true
     }
   ]
 }
