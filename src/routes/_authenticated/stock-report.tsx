@@ -495,7 +495,7 @@ function StockReport() {
       const price = Number(form.sale_price || 0);
       if (price <= 0) throw new Error("أدخل سعر بيع صحيح");
       if (price < cost) throw new Error("سعر البيع أقل من سعر الشراء");
-      const targetBranch = form.branch_id || (branch !== "all" ? branch : "") || me?.profile?.branch_id || "";
+      const targetBranch: string = form.branch_id || (branch !== "all" ? branch : "") || me?.profile?.branch_id || "";
       if (!targetBranch) throw new Error("اختر الفرع");
       const { data: product, error } = await supabase
         .from("products")
@@ -515,12 +515,11 @@ function StockReport() {
         throw new Error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
       }
 
-      const branch = targetBranch;
       const qty = Math.floor(Number(form.quantity || 0));
-      if (branch && qty > 0) {
+      if (qty > 0) {
         const { error: stockError } = await supabase
           .from("stock")
-          .upsert({ product_id: product.id, branch_id: branch, quantity: qty });
+          .upsert({ product_id: product.id, branch_id: targetBranch, quantity: qty });
         if (stockError) throw stockError;
       }
       toast.success("تمت إضافة المنتج");
