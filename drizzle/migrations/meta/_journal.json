@@ -15,6 +15,13 @@
       "when": 1790246958044,
       "tag": "0001_cashier_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790590957902,
+      "tag": "0002_separate_products_by_branch",
+      "breakpoints": true
     }
   ]
 }

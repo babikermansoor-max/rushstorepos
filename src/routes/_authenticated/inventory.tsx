@@ -33,6 +33,7 @@ type ProductRow = {
   barcode: string | null;
   cost_price: number;
   sale_price: number;
+  branch_id: string;
   categories: { name: string } | null;
   stock: { quantity: number; branch_id: string }[];
 };
@@ -63,7 +64,7 @@ function Inventory() {
       ((
         await supabase
           .from("products")
-          .select("id, name, barcode, cost_price, sale_price, categories(name), stock(quantity, branch_id)")
+          .select("id, name, barcode, cost_price, sale_price, branch_id, categories(name), stock(quantity, branch_id)")
           .order("name")
       ).data ?? []) as unknown as ProductRow[],
   });
@@ -71,6 +72,7 @@ function Inventory() {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (products ?? [])
+      .filter((p) => p.branch_id === branch)
       .filter((p) => !term || p.name.toLowerCase().includes(term) || (p.barcode ?? "").includes(search.trim()))
       .map((p) => ({
         ...p,

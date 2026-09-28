@@ -40,6 +40,7 @@ type Product = {
   cost_price_aed: number;
   sale_price: number;
   category_id: string | null;
+  branch_id: string;
   categories: { name: string } | null;
 };
 
@@ -133,22 +134,30 @@ function StockReport() {
     queryFn: async () => (await supabase.from("branches").select("id, name").order("name")).data ?? [],
   });
 
-  const { data: categories } = useQuery({
+  const { data: allCategories } = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("categories").select("id, name").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("categories").select("id, name, branch_id").order("name")).data ?? [],
   });
+  const categories = useMemo(
+    () => (allCategories ?? []).filter((c) => branch === "all" || c.branch_id === branch),
+    [allCategories, branch],
+  );
 
-  const { data: products } = useQuery({
+  const { data: allProducts } = useQuery({
     queryKey: ["products-basic"],
     queryFn: async () =>
       ((
         await supabase
           .from("products")
-          .select("id, name, barcode, cost_price, cost_price_aed, sale_price, category_id, categories(name)")
+          .select("id, name, barcode, cost_price, cost_price_aed, sale_price, category_id, branch_id, categories(name)")
           .eq("is_active", true)
           .order("name")
       ).data ?? []) as unknown as Product[],
   });
+  const products = useMemo(
+    () => (allProducts ?? []).filter((p) => branch === "all" || p.branch_id === branch),
+    [allProducts, branch],
+  );
 
   const { data: stock, isLoading } = useQuery({
     queryKey: ["stock-report"],
@@ -227,9 +236,9 @@ function StockReport() {
 
     if (branch === "all") {
       for (const p of prods) {
-        const mine = stk.filter((s) => s.product_id === p.id);
+        const mine = stk.filter((s) => s.product_id === p.id && s.branch_id === p.branch_id);
         if (mine.length === 0) {
-          out.push({ key: p.id, product: p, branchId: null, branchName: "غير مضاف للمخزن", quantity: 0, missing: true });
+          out.push({ key: p.id, product: p, branchId: p.branch_id, branchName: branchName(p.branch_id), quantity: 0, missing: true });
         } else {
           for (const s of mine) {
             out.push({
@@ -486,9 +495,12 @@ function StockReport() {
       const price = Number(form.sale_price || 0);
       if (price <= 0) throw new Error("أدخل سعر بيع صحيح");
       if (price < cost) throw new Error("سعر البيع أقل من سعر الشراء");
+      const targetBranch: string = form.branch_id || (branch !== "all" ? branch : "") || me?.profile?.branch_id || "";
+      if (!targetBranch) throw new Error("اختر الفرع");
       const { data: product, error } = await supabase
         .from("products")
         .insert({
+          branch_id: targetBranch,
           name: form.name.trim(),
           barcode: form.barcode.trim() || null,
           category_id: form.category_id || null,
@@ -503,12 +515,11 @@ function StockReport() {
         throw new Error(error.code === "23505" ? "هذا الباركود مستخدم لمنتج آخر" : error.message);
       }
 
-      const branch = form.branch_id || me?.profile?.branch_id;
       const qty = Math.floor(Number(form.quantity || 0));
-      if (branch && qty > 0) {
+      if (qty > 0) {
         const { error: stockError } = await supabase
           .from("stock")
-          .upsert({ product_id: product.id, branch_id: branch, quantity: qty });
+          .upsert({ product_id: product.id, branch_id: targetBranch, quantity: qty });
         if (stockError) throw stockError;
       }
       toast.success("تمت إضافة المنتج");
@@ -620,7 +631,9 @@ function StockReport() {
     const name = catName.trim();
     if (!name) return;
     setSaving(true);
-    const { error } = await supabase.from("categories").insert({ name });
+    const { error } = await supabase
+      .from("categories")
+      .insert({ name, branch_id: (branch !== "all" ? branch : me?.profile?.branch_id) ?? "" });
     setSaving(false);
     if (error) toast.error(error.message);
     else {
