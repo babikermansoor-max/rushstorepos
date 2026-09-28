@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader, RequireAdmin } from "@/components/AppLayout";
 import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 import { PAYMENT_LABELS, formatDateTime, formatNumber, formatSDG } from "@/lib/format";
@@ -31,9 +32,12 @@ function isoDay(offset = 0) {
 }
 
 function Reports() {
+  const { user } = useSession();
+  const { data: me } = useProfile(user?.id);
   const [from, setFrom] = useState(isoDay(-30));
   const [to, setTo] = useState(isoDay());
-  const [branch, setBranch] = useState("all");
+  const [selBranch, setSelBranch] = useState("all");
+  const branch = me?.isOwner ? selBranch : (me?.profile?.branch_id ?? "all");
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -176,21 +180,23 @@ function Reports() {
           <Label>إلى</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
-        <div className="space-y-1.5">
-          <Label>الفرع</Label>
-          <select
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-          >
-            <option value="all">كل الفروع</option>
-            {(branches ?? []).map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {me?.isOwner && (
+          <div className="space-y-1.5">
+            <Label>الفرع</Label>
+            <select
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              value={selBranch}
+              onChange={(e) => setSelBranch(e.target.value)}
+            >
+              <option value="all">كل الفروع</option>
+              {(branches ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {[
             { label: "اليوم", from: isoDay(), to: isoDay() },
