@@ -35,9 +35,16 @@ function Returns() {
   const [barcode, setBarcode] = useState("");
 
   const { data: products } = useQuery({
-    queryKey: ["products-basic"],
+    queryKey: ["products-return", me?.profile?.branch_id],
+    enabled: !!me?.profile?.branch_id,
     queryFn: async () =>
-      (await supabase.from("products").select("id, name, sale_price, barcode").order("name")).data ?? [],
+      (
+        await supabase
+          .from("products")
+          .select("id, name, sale_price, barcode")
+          .eq("branch_id", me!.profile!.branch_id!)
+          .order("name")
+      ).data ?? [],
   });
 
   // سعر البيع الفعلي لآخر فاتورة بيع لهذا المنتج، وإلا سعر البيع الحالي

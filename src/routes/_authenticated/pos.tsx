@@ -55,17 +55,21 @@ function POS() {
   }, []);
 
   const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("categories").select("id, name").order("name")).data ?? [],
+    queryKey: ["categories", branchId],
+    enabled: !!branchId,
+    queryFn: async () =>
+      (await supabase.from("categories").select("id, name").eq("branch_id", branchId!).order("name")).data ?? [],
   });
 
   const { data: products } = useQuery({
     queryKey: ["pos-products", branchId],
+    enabled: !!branchId,
     queryFn: async (): Promise<ProductRow[]> => {
       const { data } = await supabase
         .from("products")
         .select("id, name, barcode, sale_price, category_id, stock(quantity, branch_id)")
         .eq("is_active", true)
+        .eq("branch_id", branchId!)
         .order("name");
       return (data ?? []).map((p) => ({
         id: p.id,

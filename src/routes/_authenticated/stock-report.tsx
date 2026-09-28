@@ -40,6 +40,7 @@ type Product = {
   cost_price_aed: number;
   sale_price: number;
   category_id: string | null;
+  branch_id: string;
   categories: { name: string } | null;
 };
 
