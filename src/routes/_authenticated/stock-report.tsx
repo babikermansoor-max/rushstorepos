@@ -765,21 +765,23 @@ function StockReport() {
                             onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                           />
                         </div>
-                        <div className="space-y-1.5">
-                          <Label>الفرع</Label>
-                          <select
-                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                            value={form.branch_id}
-                            onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
-                          >
-                            <option value="">فرعي الحالي</option>
-                            {(branches ?? []).map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {b.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        {me?.isOwner && (
+                          <div className="space-y-1.5">
+                            <Label>الفرع</Label>
+                            <select
+                              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                              value={form.branch_id}
+                              onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
+                            >
+                              <option value="">فرعي الحالي</option>
+                              {(branches ?? []).map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  {b.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
                       <Button type="submit" className="w-full">
                         حفظ المنتج
