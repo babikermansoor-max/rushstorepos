@@ -123,23 +123,25 @@ function Inventory() {
               className="pr-9"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label>الفرع</Label>
-            <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={branch}
-              onChange={(e) => {
-                setBranch(e.target.value);
-                setCounts({});
-              }}
-            >
-              {(branches ?? []).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {me?.isOwner && (
+            <div className="space-y-1.5">
+              <Label>الفرع</Label>
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={branch}
+                onChange={(e) => {
+                  setBranch(e.target.value);
+                  setCounts({});
+                }}
+              >
+                {(branches ?? []).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {me?.isAdmin && (
             <Button onClick={saveCount} disabled={saving || changed.length === 0}>
               حفظ الجرد {changed.length > 0 ? `(${changed.length})` : ""}

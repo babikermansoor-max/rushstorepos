@@ -92,7 +92,8 @@ function StockReport() {
   const { user } = useSession();
   const { data: me } = useProfile(user?.id);
   const queryClient = useQueryClient();
-  const [branch, setBranch] = useState("all");
+  const [selBranch, setSelBranch] = useState("all");
+  const branch = me?.isOwner ? selBranch : (me?.profile?.branch_id ?? "all");
   const [search, setSearch] = useState("");
   const [onlyLow, setOnlyLow] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
@@ -838,21 +839,23 @@ function StockReport() {
       />
 
       <div className="surface no-print mb-4 flex flex-wrap items-end gap-4 p-4">
-        <div className="space-y-1.5">
-          <Label>الفرع</Label>
-          <select
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="all">كل الفروع</option>
-            {(branches ?? []).map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {me?.isOwner && (
+          <div className="space-y-1.5">
+            <Label>الفرع</Label>
+            <select
+              value={selBranch}
+              onChange={(e) => setSelBranch(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">كل الفروع</option>
+              {(branches ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label>من تاريخ</Label>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
