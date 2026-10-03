@@ -141,6 +141,21 @@ function Reports() {
   }
   const top = [...topMap.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 8);
 
+  const { data: phoneSales = [] } = useQuery({
+    queryKey: ["reports-phones", from, to, branch],
+    queryFn: async () => {
+      let q = supabase
+        .from("phone_sales")
+        .select("sale_price, unit_cost, branch_id")
+        .gte("created_at", new Date(`${from}T00:00:00`).toISOString())
+        .lte("created_at", new Date(`${to}T23:59:59`).toISOString());
+      if (branch !== "all") q = q.eq("branch_id", branch);
+      return (await q).data ?? [];
+    },
+  });
+  const phoneTotal = phoneSales.reduce((s, r) => s + Number(r.sale_price), 0);
+  const phoneProfit = phoneSales.reduce((s, r) => s + Number(r.sale_price) - Number(r.unit_cost), 0);
+
   const invoices = useMemo(() => {
     const itemsBySale = new Map<string, { name: string; qty: number; price: number }[]>();
     for (const it of data?.items ?? []) {
@@ -244,7 +259,11 @@ function Reports() {
         <Stat label="تكلفة المبيعات" value={formatSDG(netCogs)} />
         <Stat label="مجمل الربح" value={formatSDG(grossProfit)} />
         <Stat label="المصروفات" value={formatSDG(expenses)} />
-        <Stat label="صافي الربح" value={formatSDG(netProfit)} highlight />
+        <Stat label="صافي الربح (ملحقات)" value={formatSDG(netProfit)} highlight />
+        <Stat label="مبيعات الهواتف" value={formatSDG(phoneTotal)} />
+        <Stat label="أجهزة مباعة" value={formatNumber(phoneSales.length)} />
+        <Stat label="أرباح الهواتف" value={formatSDG(phoneProfit)} />
+        <Stat label="صافي الربح الكلي" value={formatSDG(netProfit + phoneProfit)} highlight />
       </div>
 
 

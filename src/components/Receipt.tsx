@@ -18,6 +18,8 @@ export type ReceiptData = {
   items: { name: string; qty: number; price: number }[];
   total: number;
   paid?: number | null;
+  /** أسطر إضافية تظهر قبل الإجمالي (مثل خصم جهاز الاستبدال) */
+  adjustments?: { label: string; amount: number }[];
 };
 
 function applyThermalPage() {
@@ -126,6 +128,12 @@ function ReceiptBody({ data, printMode }: { data: ReceiptData; printMode?: boole
       </table>
 
       <div className="mt-3 border-t border-dashed border-border pt-2">
+        {data.adjustments?.map((a, i) => (
+          <div key={i} className="mb-1 flex justify-between gap-2 text-xs">
+            <span>{a.label}</span>
+            <span>{formatSDG(a.amount)}</span>
+          </div>
+        ))}
         <div className="flex justify-between text-base font-extrabold">
           <span>الإجمالي</span>
           <span className="text-gold">{formatSDG(data.total)}</span>
