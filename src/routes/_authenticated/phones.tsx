@@ -136,10 +136,10 @@ function StockTab({ phones, isAdmin, isOwner, branchId }: { phones: Phone[]; isA
     setOpen(true);
   }
 
-  async function save() {
-    if (!f.imei.trim() || !f.model.trim()) return toast.error("أدخل IMEI والموديل");
+  async function save(): Promise<void> {
+    if (!f.imei.trim() || !f.model.trim()) return void toast.error("أدخل IMEI والموديل");
     const bh = f.battery_health ? Number(f.battery_health) : null;
-    if (bh != null && (bh < 0 || bh > 100)) return toast.error("نسبة البطارية بين 0 و100");
+    if (bh != null && (bh < 0 || bh > 100)) return void toast.error("نسبة البطارية بين 0 و100");
     const used = f.condition === "used";
     const row = {
       imei: f.imei.trim(), brand: f.brand.trim(), model: f.model.trim(),
@@ -151,18 +151,18 @@ function StockTab({ phones, isAdmin, isOwner, branchId }: { phones: Phone[]; isA
     setBusy(true);
     const { error } = editId
       ? await supabase.from("phones").update(row).eq("id", editId)
-      : await supabase.from("phones").insert({ ...row, branch_id: branchId!, created_by: (await supabase.auth.getUser()).data.user?.id });
+      : await supabase.from("phones").insert({ ...row, branch_id: branchId!, created_by: (await supabase.auth.getUser()).data.user?.id ?? null });
     setBusy(false);
-    if (error) return toast.error(error.code === "23505" ? "رقم IMEI مسجل مسبقاً في هذا الفرع" : error.message);
+    if (error) return void toast.error(error.code === "23505" ? "رقم IMEI مسجل مسبقاً في هذا الفرع" : error.message);
     toast.success("تم الحفظ");
     setOpen(false);
     qc.invalidateQueries({ queryKey: ["phones"] });
   }
 
-  async function remove(p: Phone) {
+  async function remove(p: Phone): Promise<void> {
     if (!confirm(`حذف ${phoneTitle(p)}؟`)) return;
     const { error } = await supabase.from("phones").delete().eq("id", p.id);
-    if (error) return toast.error("لا يمكن حذف جهاز مرتبط بفاتورة");
+    if (error) return void toast.error("لا يمكن حذف جهاز مرتبط بفاتورة");
     toast.success("تم الحذف");
     qc.invalidateQueries({ queryKey: ["phones"] });
   }
@@ -314,13 +314,13 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
 
   function pick(p: Phone) { setPhone(p); setPrice(String(p.sale_price)); setQ(""); }
 
-  async function submit() {
-    if (!phone) return toast.error("اختر الجهاز");
-    if (salePrice <= 0) return toast.error("أدخل سعر البيع");
+  async function submit(): Promise<void> {
+    if (!phone) return void toast.error("اختر الجهاز");
+    if (salePrice <= 0) return void toast.error("أدخل سعر البيع");
     if (tradeIn) {
-      if (!t.imei.trim() || !t.model.trim()) return toast.error("أدخل IMEI وموديل جهاز الزبون");
-      if (tradeVal <= 0) return toast.error("أدخل قيمة تقييم جهاز الزبون");
-      if (tradeVal > salePrice) return toast.error("قيمة جهاز الزبون أكبر من سعر الجهاز");
+      if (!t.imei.trim() || !t.model.trim()) return void toast.error("أدخل IMEI وموديل جهاز الزبون");
+      if (tradeVal <= 0) return void toast.error("أدخل قيمة تقييم جهاز الزبون");
+      if (tradeVal > salePrice) return void toast.error("قيمة جهاز الزبون أكبر من سعر الجهاز");
     }
     setBusy(true);
     const { data, error } = await supabase.rpc("create_phone_sale", {
@@ -334,18 +334,18 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
         : (null as unknown as Record<string, never>),
     });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return void toast.error(error.message);
     const r = data?.[0];
     const items = [{ name: `${phoneTitle(phone)} (${phone.condition === "new" ? "جديد" : "مستعمل"}) — IMEI ${phone.imei}`, qty: 1, price: salePrice }];
     setReceipt({
       invoiceNo: `P-${r?.invoice_no}`,
       createdAt: r?.created_at ?? new Date().toISOString(),
-      branch: (me?.profile as { branches?: { name: string } } | undefined)?.branches?.name,
-      cashier: me?.profile?.full_name,
+      branch: (me?.profile as { branches?: { name: string } } | undefined)?.branches?.name ?? null,
+      cashier: me?.profile?.full_name ?? null,
       customer: [customer, custPhone].filter(Boolean).join(" — ") || null,
       paymentMethod: method,
       items,
-      adjustments: tradeIn ? [{ label: `استبدال: ${phoneTitle(t)} — IMEI ${t.imei}`, amount: -tradeVal }] : undefined,
+      ...(tradeIn ? { adjustments: [{ label: `استبدال: ${phoneTitle(t)} — IMEI ${t.imei}`, amount: -tradeVal }] } : {}),
       total: diff,
     });
     toast.success("تم البيع");
@@ -380,7 +380,7 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
           <div className="space-y-1"><Label>سعر البيع</Label><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
           <div className="space-y-1"><Label>طريقة الدفع</Label>
             <select className={sel} value={method} onChange={(e) => setMethod(e.target.value as "cash" | "bankak")}>
-              <option value="cash">{PAYMENT_LABELS.cash}</option><option value="bankak">{PAYMENT_LABELS.bankak}</option>
+              <option value="cash">{PAYMENT_LABELS['cash']}</option><option value="bankak">{PAYMENT_LABELS['bankak']}</option>
             </select>
           </div>
           <div className="space-y-1"><Label>اسم الزبون</Label><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></div>
@@ -439,11 +439,11 @@ function InvoicesTab({ isAdmin }: { isAdmin: boolean }) {
     return {
       invoiceNo: `P-${r.invoice_no}`,
       createdAt: r.created_at,
-      branch: (r.branches as { name: string } | null)?.name,
+      branch: (r.branches as { name: string } | null)?.name ?? null,
       customer: [r.customer_name, r.customer_phone].filter(Boolean).join(" — ") || null,
       paymentMethod: r.payment_method,
       items: [{ name: p ? `${phoneTitle(p)} — IMEI ${p.imei}` : "هاتف", qty: 1, price: Number(r.sale_price) }],
-      adjustments: tr ? [{ label: `استبدال: ${phoneTitle(tr)} — IMEI ${tr.imei}`, amount: -Number(r.trade_in_value) }] : undefined,
+      ...(tr ? { adjustments: [{ label: `استبدال: ${phoneTitle(tr)} — IMEI ${tr.imei}`, amount: -Number(r.trade_in_value) }] } : {}),
       total: Number(r.amount_paid),
     };
   }
