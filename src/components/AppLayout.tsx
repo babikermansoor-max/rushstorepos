@@ -13,6 +13,7 @@ import {
   Wallet,
   LogOut,
   Store,
+  Smartphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
@@ -21,6 +22,7 @@ import { ROLE_LABELS } from "@/lib/format";
 const NAV = [
   { to: "/dashboard", label: "لوحة التحكم", icon: LayoutGrid, admin: true },
   { to: "/pos", label: "نقطة البيع", icon: ShoppingCart, admin: false },
+  { to: "/phones", label: "الهواتف", icon: Smartphone, admin: false },
   { to: "/returns", label: "المرتجعات", icon: Undo2, admin: false },
   { to: "/inventory", label: "المخزون", icon: Package, admin: true },
   { to: "/repairs", label: "الإصلاحات", icon: Wrench, admin: true },

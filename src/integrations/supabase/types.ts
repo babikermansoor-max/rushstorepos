@@ -135,6 +135,153 @@ export type Database = {
           },
         ]
       }
+      phone_sales: {
+        Row: {
+          amount_paid: number
+          branch_id: string
+          cashier_id: string | null
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          invoice_no: number
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          phone_id: string
+          sale_price: number
+          trade_in_phone_id: string | null
+          trade_in_value: number
+          unit_cost: number
+        }
+        Insert: {
+          amount_paid?: number
+          branch_id: string
+          cashier_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          invoice_no?: number
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          phone_id: string
+          sale_price?: number
+          trade_in_phone_id?: string | null
+          trade_in_value?: number
+          unit_cost?: number
+        }
+        Update: {
+          amount_paid?: number
+          branch_id?: string
+          cashier_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          invoice_no?: number
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          phone_id?: string
+          sale_price?: number
+          trade_in_phone_id?: string | null
+          trade_in_value?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phone_sales_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "phone_sales_phone_id_fkey"
+            columns: ["phone_id"]
+            isOneToOne: false
+            referencedRelation: "phones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "phone_sales_trade_in_phone_id_fkey"
+            columns: ["trade_in_phone_id"]
+            isOneToOne: false
+            referencedRelation: "phones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      phones: {
+        Row: {
+          battery_health: number | null
+          branch_id: string
+          brand: string
+          color: string | null
+          condition: Database["public"]["Enums"]["phone_condition"]
+          cost_price: number
+          created_at: string
+          created_by: string | null
+          grade: string | null
+          id: string
+          imei: string
+          model: string
+          notes: string | null
+          sale_price: number
+          seller_name: string | null
+          seller_phone: string | null
+          status: Database["public"]["Enums"]["phone_status"]
+          storage: string | null
+          updated_at: string
+        }
+        Insert: {
+          battery_health?: number | null
+          branch_id: string
+          brand?: string
+          color?: string | null
+          condition?: Database["public"]["Enums"]["phone_condition"]
+          cost_price?: number
+          created_at?: string
+          created_by?: string | null
+          grade?: string | null
+          id?: string
+          imei: string
+          model: string
+          notes?: string | null
+          sale_price?: number
+          seller_name?: string | null
+          seller_phone?: string | null
+          status?: Database["public"]["Enums"]["phone_status"]
+          storage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          battery_health?: number | null
+          branch_id?: string
+          brand?: string
+          color?: string | null
+          condition?: Database["public"]["Enums"]["phone_condition"]
+          cost_price?: number
+          created_at?: string
+          created_by?: string | null
+          grade?: string | null
+          id?: string
+          imei?: string
+          model?: string
+          notes?: string | null
+          sale_price?: number
+          seller_name?: string | null
+          seller_phone?: string | null
+          status?: Database["public"]["Enums"]["phone_status"]
+          storage?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phones_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -487,6 +634,21 @@ export type Database = {
         Args: { _branch: string; _user_id: string }
         Returns: boolean
       }
+      create_phone_sale: {
+        Args: {
+          p_customer: string
+          p_customer_phone: string
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_phone_id: string
+          p_price: number
+          p_trade_in: Json
+        }
+        Returns: {
+          created_at: string
+          invoice_no: number
+          sale_id: string
+        }[]
+      }
       create_sale: {
         Args: {
           p_branch: string
@@ -514,6 +676,8 @@ export type Database = {
     Enums: {
       app_role: "owner" | "manager" | "cashier"
       payment_method: "cash" | "bankak"
+      phone_condition: "new" | "used"
+      phone_status: "available" | "sold"
       repair_status:
         | "received"
         | "in_progress"
@@ -649,6 +813,8 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "manager", "cashier"],
       payment_method: ["cash", "bankak"],
+      phone_condition: ["new", "used"],
+      phone_status: ["available", "sold"],
       repair_status: [
         "received",
         "in_progress",
