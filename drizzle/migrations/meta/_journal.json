@@ -29,6 +29,13 @@
       "when": 1791008497509,
       "tag": "0003_phones_section",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791186124901,
+      "tag": "0004_restrict_manager_to_own_branch",
+      "breakpoints": true
     }
   ]
 }
