@@ -58,7 +58,8 @@ function UsersPage() {
   });
 
   const { data: staff } = useQuery({
-    queryKey: ["staff"],
+    queryKey: ["staff", me?.isOwner, me?.profile?.branch_id],
+    enabled: !!me,
     queryFn: async () => {
       const [{ data: profiles }, { data: roles }] = await Promise.all([
         supabase
@@ -281,6 +282,7 @@ function UsersPage() {
                 </form>
               </DialogContent>
             </Dialog>
+            )}
           </div>
         }
       />
