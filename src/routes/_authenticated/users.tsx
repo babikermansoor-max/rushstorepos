@@ -58,7 +58,8 @@ function UsersPage() {
   });
 
   const { data: staff } = useQuery({
-    queryKey: ["staff"],
+    queryKey: ["staff", me?.isOwner, me?.profile?.branch_id],
+    enabled: !!me,
     queryFn: async () => {
       const [{ data: profiles }, { data: roles }] = await Promise.all([
         supabase
@@ -67,7 +68,9 @@ function UsersPage() {
           .order("full_name"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
-      return (profiles ?? []).map((p) => {
+      return (profiles ?? [])
+        .filter((p) => me?.isOwner || p.branch_id === me?.profile?.branch_id)
+        .map((p) => {
         const list = (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role as AppRole);
         const role: AppRole = list.includes("owner") ? "owner" : list.includes("manager") ? "manager" : "cashier";
         return { ...p, role };
@@ -257,6 +260,7 @@ function UsersPage() {
                 </DialogContent>
               </Dialog>
             )}
+            {me.isOwner && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -278,6 +282,7 @@ function UsersPage() {
                 </form>
               </DialogContent>
             </Dialog>
+            )}
           </div>
         }
       />
@@ -320,31 +325,41 @@ function UsersPage() {
                     )}
                   </td>
                   <td className="p-3">
-                    <select
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                      value={s.role}
-                      onChange={(e) => setRole(s.id, e.target.value as AppRole)}
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABELS[r]}
-                        </option>
-                      ))}
-                    </select>
+                    {me.isOwner ? (
+                      <select
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                        value={s.role}
+                        onChange={(e) => setRole(s.id, e.target.value as AppRole)}
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r} value={r}>
+                            {ROLE_LABELS[r]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-sm">{ROLE_LABELS[s.role]}</span>
+                    )}
                   </td>
                   <td className="p-3">
-                    <select
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                      value={s.branch_id ?? ""}
-                      onChange={(e) => setBranch(s.id, e.target.value)}
-                    >
-                      <option value="">بدون فرع</option>
-                      {(branches ?? []).map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
+                    {me.isOwner ? (
+                      <select
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                        value={s.branch_id ?? ""}
+                        onChange={(e) => setBranch(s.id, e.target.value)}
+                      >
+                        <option value="">بدون فرع</option>
+                        {(branches ?? []).map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        {(s.branches as { name: string } | null)?.name ?? "—"}
+                      </span>
+                    )}
                   </td>
                   <td className="p-3">
                     {me.isOwner ? (
