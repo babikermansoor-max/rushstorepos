@@ -67,7 +67,9 @@ function UsersPage() {
           .order("full_name"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
-      return (profiles ?? []).map((p) => {
+      return (profiles ?? [])
+        .filter((p) => me?.isOwner || p.branch_id === me?.profile?.branch_id)
+        .map((p) => {
         const list = (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role as AppRole);
         const role: AppRole = list.includes("owner") ? "owner" : list.includes("manager") ? "manager" : "cashier";
         return { ...p, role };
@@ -257,6 +259,7 @@ function UsersPage() {
                 </DialogContent>
               </Dialog>
             )}
+            {me.isOwner && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button>
