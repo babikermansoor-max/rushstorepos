@@ -672,6 +672,14 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      staff_directory: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       app_role: "owner" | "manager" | "cashier" | "warehouse"
