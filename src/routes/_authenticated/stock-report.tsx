@@ -179,7 +179,7 @@ function StockReport() {
           )
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
-        supabase.from("profiles").select("id, full_name"),
+        supabase.rpc("staff_directory"),
         supabase
           .from("returns")
           .select("product_id, product_name, quantity, amount, branch_id, created_at")
