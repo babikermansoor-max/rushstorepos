@@ -7,7 +7,7 @@ type NewStaff = {
   password: string;
   fullName?: string;
   phone?: string;
-  role: "owner" | "manager" | "cashier";
+  role: "owner" | "manager" | "cashier" | "warehouse";
   branchId?: string | null;
 };
 
@@ -18,7 +18,7 @@ export const createStaffAccount = createServerFn({ method: "POST" })
     const username = normalizeUsername(input?.username ?? "");
     if (username.length < 3) throw new Error("اسم المستخدم قصير جداً");
     if (!input?.password || input.password.length < 6) throw new Error("كلمة المرور قصيرة جداً");
-    if (!["owner", "manager", "cashier"].includes(input?.role)) throw new Error("صلاحية غير صالحة");
+    if (!["owner", "manager", "cashier", "warehouse"].includes(input?.role)) throw new Error("صلاحية غير صالحة");
     return { ...input, username };
   })
   .handler(async ({ data, context }) => {

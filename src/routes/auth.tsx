@@ -37,7 +37,7 @@ function AuthPage() {
 
   useEffect(() => {
     if (signingUp.current || pending) return;
-    if (!loading && session) navigate({ to: "/dashboard", replace: true });
+    if (!loading && session) navigate({ to: "/", replace: true });
   }, [loading, session, navigate, pending]);
 
   async function submit(e: React.FormEvent) {
@@ -56,7 +56,7 @@ function AuthPage() {
         });
         if (error) throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة");
         toast.success("تم تسجيل الدخول");
-        navigate({ to: "/dashboard", replace: true });
+        navigate({ to: "/", replace: true });
       } else {
         signingUp.current = true;
         if (phone.trim().length < 6) {
