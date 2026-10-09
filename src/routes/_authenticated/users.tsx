@@ -72,7 +72,13 @@ function UsersPage() {
         .filter((p) => me?.isOwner || p.branch_id === me?.profile?.branch_id)
         .map((p) => {
         const list = (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role as AppRole);
-        const role: AppRole = list.includes("owner") ? "owner" : list.includes("manager") ? "manager" : "cashier";
+        const role: AppRole = list.includes("owner")
+          ? "owner"
+          : list.includes("manager")
+            ? "manager"
+            : list.includes("warehouse")
+              ? "warehouse"
+              : "cashier";
         return { ...p, role };
       });
     },
@@ -100,7 +106,11 @@ function UsersPage() {
   }
 
   async function setRole(userId: string, role: AppRole) {
-    await supabase.from("user_roles").delete().eq("user_id", userId);
+    const { error: delError } = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (delError) {
+      toast.error(delError.message);
+      return;
+    }
     const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
     if (error) toast.error(error.message);
     else {
