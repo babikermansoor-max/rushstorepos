@@ -22,7 +22,7 @@ export function useSession() {
   return { session, user: session?.user ?? null, loading };
 }
 
-export type AppRole = "owner" | "manager" | "cashier";
+export type AppRole = "owner" | "manager" | "cashier" | "warehouse";
 
 export function useProfile(userId?: string) {
   return useQuery({
@@ -42,12 +42,15 @@ export function useProfile(userId?: string) {
         ? "owner"
         : roleList.includes("manager")
           ? "manager"
-          : "cashier";
+          : roleList.includes("warehouse")
+            ? "warehouse"
+            : "cashier";
       return {
         profile,
         role,
         isAdmin: role === "owner" || role === "manager",
         isOwner: role === "owner",
+        isWarehouse: role === "warehouse",
         isApproved: profile?.is_approved ?? false,
       };
     },

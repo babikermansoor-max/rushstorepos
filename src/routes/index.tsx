@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Store, ShoppingCart, Package, Wrench, BarChart3 } from "lucide-react";
-import { useSession } from "@/hooks/useSession";
+import { useProfile, useSession } from "@/hooks/useSession";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,13 +30,19 @@ const FEATURES = [
 ];
 
 function Landing() {
-  const { session, loading } = useSession();
+  const { session, user, loading } = useSession();
+  const { data: me, isLoading: profileLoading } = useProfile(user?.id);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (loading) return;
-    navigate({ to: session ? "/dashboard" : "/auth", replace: true });
-  }, [loading, session, navigate]);
+    if (!session) {
+      navigate({ to: "/auth", replace: true });
+      return;
+    }
+    if (profileLoading || !me) return;
+    navigate({ to: me.isWarehouse ? "/reports" : "/dashboard", replace: true });
+  }, [loading, session, me, profileLoading, navigate]);
 
 
   return (

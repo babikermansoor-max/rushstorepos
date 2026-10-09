@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
-import { PageHeader, RequireAdmin } from "@/components/AppLayout";
+import { PageHeader, RequireReports } from "@/components/AppLayout";
 import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 import { PAYMENT_LABELS, formatDateTime, formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,9 @@ export const Route = createFileRoute("/_authenticated/reports")({
     ],
   }),
   component: () => (
-    <RequireAdmin>
+    <RequireReports>
       <Reports />
-    </RequireAdmin>
+    </RequireReports>
   ),
 });
 
@@ -84,10 +84,7 @@ function Reports() {
         expQ,
       ]);
       const { data: prods } = await supabase.from("products").select("id, cost_price");
-      const cashierIds = [...new Set((sales ?? []).map((s) => s.cashier_id).filter(Boolean))] as string[];
-      const { data: profs } = cashierIds.length
-        ? await supabase.from("profiles").select("id, full_name, username").in("id", cashierIds)
-        : { data: [] as { id: string; full_name: string; username: string | null }[] };
+      const { data: profs } = await supabase.rpc("staff_directory");
       return {
         sales: sales ?? [],
         items: items ?? [],

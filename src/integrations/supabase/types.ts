@@ -672,9 +672,17 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      staff_directory: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+          username: string
+        }[]
+      }
     }
     Enums: {
-      app_role: "owner" | "manager" | "cashier"
+      app_role: "owner" | "manager" | "cashier" | "warehouse"
       payment_method: "cash" | "bankak"
       phone_condition: "new" | "used"
       phone_status: "available" | "sold"
@@ -811,7 +819,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "manager", "cashier"],
+      app_role: ["owner", "manager", "cashier", "warehouse"],
       payment_method: ["cash", "bankak"],
       phone_condition: ["new", "used"],
       phone_status: ["available", "sold"],

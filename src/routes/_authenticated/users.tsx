@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/users")({
   component: UsersPage,
 });
 
-const ROLES: AppRole[] = ["owner", "manager", "cashier"];
+const ROLES: AppRole[] = ["owner", "manager", "warehouse", "cashier"];
 
 function UsersPage() {
   const { user } = useSession();

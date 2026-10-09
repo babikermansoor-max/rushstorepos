@@ -29,6 +29,7 @@ export const ROLE_LABELS: Record<string, string> = {
   owner: "المالك",
   manager: "مدير",
   cashier: "موظف مبيعات",
+  warehouse: "مدير مخزن",
 };
 
 export const REPAIR_STATUS_LABELS: Record<string, string> = {

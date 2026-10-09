@@ -20,16 +20,16 @@ import { useProfile, useSession } from "@/hooks/useSession";
 import { ROLE_LABELS } from "@/lib/format";
 
 const NAV = [
-  { to: "/dashboard", label: "لوحة التحكم", icon: LayoutGrid, admin: true },
-  { to: "/pos", label: "نقطة البيع", icon: ShoppingCart, admin: false },
-  { to: "/phones", label: "الهواتف", icon: Smartphone, admin: false },
-  { to: "/returns", label: "المرتجعات", icon: Undo2, admin: false },
-  { to: "/inventory", label: "المخزون", icon: Package, admin: true },
-  { to: "/repairs", label: "الإصلاحات", icon: Wrench, admin: true },
-  { to: "/reports", label: "التقارير", icon: BarChart3, admin: true },
-  { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: true },
-  { to: "/expenses", label: "المنصرفات", icon: Wallet, admin: false },
-  { to: "/users", label: "الموظفين والفروع", icon: Users, admin: true },
+  { to: "/dashboard", label: "لوحة التحكم", icon: LayoutGrid, admin: true, reports: false },
+  { to: "/pos", label: "نقطة البيع", icon: ShoppingCart, admin: false, reports: false },
+  { to: "/phones", label: "الهواتف", icon: Smartphone, admin: false, reports: false },
+  { to: "/returns", label: "المرتجعات", icon: Undo2, admin: false, reports: false },
+  { to: "/inventory", label: "المخزون", icon: Package, admin: true, reports: false },
+  { to: "/repairs", label: "الإصلاحات", icon: Wrench, admin: true, reports: false },
+  { to: "/reports", label: "التقارير", icon: BarChart3, admin: true, reports: true },
+  { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: true, reports: true },
+  { to: "/expenses", label: "المنصرفات", icon: Wallet, admin: false, reports: false },
+  { to: "/users", label: "الموظفين والفروع", icon: Users, admin: true, reports: false },
 ] as const;
 
 /** يمنع غير المالك/المدير من فتح صفحات الإدارة حتى لو كتب الرابط مباشرة. */
@@ -42,6 +42,21 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
       <div className="surface p-8 text-center">
         <h1 className="text-lg font-bold">لا تملك صلاحية الوصول</h1>
         <p className="mt-1 text-sm text-muted-foreground">هذه الصفحة مخصصة للمالك والمدير فقط.</p>
+      </div>
+    );
+  return <>{children}</>;
+}
+
+/** يسمح للمالك والمدير ومدير المخزن بفتح صفحات التقارير فقط. */
+export function RequireReports({ children }: { children: ReactNode }) {
+  const { user } = useSession();
+  const { data, isLoading } = useProfile(user?.id);
+  if (isLoading) return <p className="text-sm text-muted-foreground">جارٍ التحميل...</p>;
+  if (!data?.isAdmin && !data?.isWarehouse)
+    return (
+      <div className="surface p-8 text-center">
+        <h1 className="text-lg font-bold">لا تملك صلاحية الوصول</h1>
+        <p className="mt-1 text-sm text-muted-foreground">هذه الصفحة مخصصة للإدارة ومدير المخزن فقط.</p>
       </div>
     );
   return <>{children}</>;
@@ -94,7 +109,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV.filter((n) => !n.admin || data?.isAdmin).map((item) => (
+          {NAV.filter((n) => (data?.isWarehouse ? n.reports : !n.admin || data?.isAdmin)).map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -139,7 +154,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         <nav className="flex gap-1 overflow-x-auto border-b border-border bg-card px-2 py-2 md:hidden">
-          {NAV.filter((n) => !n.admin || data?.isAdmin).map((item) => (
+          {NAV.filter((n) => (data?.isWarehouse ? n.reports : !n.admin || data?.isAdmin)).map((item) => (
             <Link
               key={item.to}
               to={item.to}

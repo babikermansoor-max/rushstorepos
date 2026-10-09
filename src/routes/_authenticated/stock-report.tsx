@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Printer, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader, RequireAdmin } from "@/components/AppLayout";
+import { PageHeader, RequireReports } from "@/components/AppLayout";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { formatDate, formatNumber, formatSDG } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,9 @@ export const Route = createFileRoute("/_authenticated/stock-report")({
     ],
   }),
   component: () => (
-    <RequireAdmin>
+    <RequireReports>
       <StockReport />
-    </RequireAdmin>
+    </RequireReports>
   ),
 });
 
@@ -179,7 +179,7 @@ function StockReport() {
           )
           .gte("sales.created_at", start)
           .lte("sales.created_at", end),
-        supabase.from("profiles").select("id, full_name"),
+        supabase.rpc("staff_directory"),
         supabase
           .from("returns")
           .select("product_id, product_name, quantity, amount, branch_id, created_at")
