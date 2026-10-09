@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
-import { PageHeader, RequireAdmin } from "@/components/AppLayout";
+import { PageHeader, RequireReports } from "@/components/AppLayout";
 import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 import { PAYMENT_LABELS, formatDateTime, formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,9 @@ export const Route = createFileRoute("/_authenticated/reports")({
     ],
   }),
   component: () => (
-    <RequireAdmin>
+    <RequireReports>
       <Reports />
-    </RequireAdmin>
+    </RequireReports>
   ),
 });
 
