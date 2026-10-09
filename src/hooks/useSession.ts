@@ -42,12 +42,15 @@ export function useProfile(userId?: string) {
         ? "owner"
         : roleList.includes("manager")
           ? "manager"
-          : "cashier";
+          : roleList.includes("warehouse")
+            ? "warehouse"
+            : "cashier";
       return {
         profile,
         role,
         isAdmin: role === "owner" || role === "manager",
         isOwner: role === "owner",
+        isWarehouse: role === "warehouse",
         isApproved: profile?.is_approved ?? false,
       };
     },
