@@ -22,7 +22,7 @@ export function useSession() {
   return { session, user: session?.user ?? null, loading };
 }
 
-export type AppRole = "owner" | "manager" | "cashier";
+export type AppRole = "owner" | "manager" | "cashier" | "warehouse";
 
 export function useProfile(userId?: string) {
   return useQuery({
