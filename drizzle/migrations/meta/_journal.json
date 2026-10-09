@@ -36,6 +36,13 @@
       "when": 1791186124901,
       "tag": "0004_restrict_manager_to_own_branch",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791555187998,
+      "tag": "0005_add_warehouse_role",
+      "breakpoints": true
     }
   ]
 }
