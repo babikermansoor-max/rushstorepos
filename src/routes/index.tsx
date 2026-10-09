@@ -41,7 +41,7 @@ function Landing() {
       return;
     }
     if (profileLoading || !me) return;
-    navigate({ to: me.isWarehouse ? "/reports" : "/dashboard", replace: true });
+    navigate({ to: me.isWarehouse ? "/stock-report" : "/dashboard", replace: true });
   }, [loading, session, me, profileLoading, navigate]);
 
 
