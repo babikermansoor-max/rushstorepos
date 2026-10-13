@@ -123,7 +123,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV.filter((n) => (data?.isWarehouse ? n.reports : !n.admin || data?.isAdmin)).map((item) => (
+          {NAV.filter((n) => visible(n, data)).map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -168,7 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         <nav className="flex gap-1 overflow-x-auto border-b border-border bg-card px-2 py-2 md:hidden">
-          {NAV.filter((n) => (data?.isWarehouse ? n.reports : !n.admin || data?.isAdmin)).map((item) => (
+          {NAV.filter((n) => visible(n, data)).map((item) => (
             <Link
               key={item.to}
               to={item.to}
