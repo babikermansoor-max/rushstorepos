@@ -57,6 +57,13 @@
       "when": 1791908483566,
       "tag": "0007_login_throttle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791908683616,
+      "tag": "0008_audit_log",
+      "breakpoints": true
     }
   ]
 }
