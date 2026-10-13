@@ -14,9 +14,12 @@ import {
   LogOut,
   Store,
   Smartphone,
+  ShieldCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
+import { useIdleLogout } from "@/hooks/useIdleLogout";
 import { ROLE_LABELS } from "@/lib/format";
 
 const NAV = [
@@ -30,7 +33,13 @@ const NAV = [
   { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: true, reports: true },
   { to: "/expenses", label: "المنصرفات", icon: Wallet, admin: false, reports: false },
   { to: "/users", label: "الموظفين والفروع", icon: Users, admin: true, reports: false },
+  { to: "/audit", label: "سجل العمليات", icon: ShieldCheck, admin: true, reports: false, owner: true },
 ] as const;
+
+function visible(n: (typeof NAV)[number], d?: { isWarehouse: boolean; isAdmin: boolean; isOwner: boolean }) {
+  if ("owner" in n && n.owner) return !!d?.isOwner;
+  return d?.isWarehouse ? n.reports : !n.admin || !!d?.isAdmin;
+}
 
 /** يمنع غير المالك/المدير من فتح صفحات الإدارة حتى لو كتب الرابط مباشرة. */
 export function RequireAdmin({ children }: { children: ReactNode }) {
@@ -78,6 +87,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     navigate({ to: "/auth", replace: true });
   }
 
+  useIdleLogout(30, () => {
+    toast.info("تم تسجيل الخروج تلقائياً بسبب عدم النشاط");
+    void signOut();
+  });
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
@@ -109,7 +123,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV.filter((n) => (data?.isWarehouse ? n.reports : !n.admin || data?.isAdmin)).map((item) => (
+          {NAV.filter((n) => visible(n, data)).map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -154,7 +168,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         <nav className="flex gap-1 overflow-x-auto border-b border-border bg-card px-2 py-2 md:hidden">
-          {NAV.filter((n) => (data?.isWarehouse ? n.reports : !n.admin || data?.isAdmin)).map((item) => (
+          {NAV.filter((n) => visible(n, data)).map((item) => (
             <Link
               key={item.to}
               to={item.to}
