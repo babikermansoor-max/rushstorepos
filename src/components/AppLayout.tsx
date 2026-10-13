@@ -14,9 +14,12 @@ import {
   LogOut,
   Store,
   Smartphone,
+  ShieldCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
+import { useIdleLogout } from "@/hooks/useIdleLogout";
 import { ROLE_LABELS } from "@/lib/format";
 
 const NAV = [
@@ -30,7 +33,13 @@ const NAV = [
   { to: "/stock-report", label: "تقرير المخزن", icon: ClipboardList, admin: true, reports: true },
   { to: "/expenses", label: "المنصرفات", icon: Wallet, admin: false, reports: false },
   { to: "/users", label: "الموظفين والفروع", icon: Users, admin: true, reports: false },
+  { to: "/audit", label: "سجل العمليات", icon: ShieldCheck, admin: true, reports: false, owner: true },
 ] as const;
+
+function visible(n: (typeof NAV)[number], d?: { isWarehouse: boolean; isAdmin: boolean; isOwner: boolean }) {
+  if ("owner" in n && n.owner) return !!d?.isOwner;
+  return d?.isWarehouse ? n.reports : !n.admin || !!d?.isAdmin;
+}
 
 /** يمنع غير المالك/المدير من فتح صفحات الإدارة حتى لو كتب الرابط مباشرة. */
 export function RequireAdmin({ children }: { children: ReactNode }) {
@@ -77,6 +86,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  useIdleLogout(30, () => {
+    toast.info("تم تسجيل الخروج تلقائياً بسبب عدم النشاط");
+    void signOut();
+  });
 
   return (
     <div className="flex min-h-screen bg-background">
