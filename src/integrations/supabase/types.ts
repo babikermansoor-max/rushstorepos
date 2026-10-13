@@ -135,6 +135,30 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ip: string
+          success: boolean
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          ip: string
+          success: boolean
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          ip?: string
+          success?: boolean
+          username?: string
+        }
+        Relationships: []
+      }
       phone_sales: {
         Row: {
           amount_paid: number
@@ -672,6 +696,10 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      login_wait_seconds: {
+        Args: { _ip: string; _username: string }
+        Returns: number
+      }
       staff_directory: {
         Args: never
         Returns: {

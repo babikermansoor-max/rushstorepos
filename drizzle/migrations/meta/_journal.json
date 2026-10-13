@@ -50,6 +50,13 @@
       "when": 1791555275400,
       "tag": "0006_staff_directory_function",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791908483566,
+      "tag": "0007_login_throttle",
+      "breakpoints": true
     }
   ]
 }
