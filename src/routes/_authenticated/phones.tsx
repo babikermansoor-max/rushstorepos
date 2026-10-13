@@ -320,7 +320,6 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
     if (tradeIn) {
       if (!t.imei.trim() || !t.model.trim()) return void toast.error("أدخل IMEI وموديل جهاز الزبون");
       if (tradeVal <= 0) return void toast.error("أدخل قيمة تقييم جهاز الزبون");
-      if (tradeVal > salePrice) return void toast.error("قيمة جهاز الزبون أكبر من سعر الجهاز");
     }
     setBusy(true);
     const { data, error } = await supabase.rpc("create_phone_sale", {
@@ -406,7 +405,9 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
         <div className="space-y-1 rounded-lg bg-secondary p-3 text-sm">
           <div className="flex justify-between"><span>سعر الجهاز</span><span>{formatSDG(salePrice)}</span></div>
           {tradeIn && <div className="flex justify-between"><span>قيمة جهاز الزبون</span><span>− {formatSDG(tradeVal)}</span></div>}
-          <div className="flex justify-between text-base font-extrabold"><span>المطلوب من الزبون</span><span className="text-gold">{formatSDG(diff)}</span></div>
+          {diff >= 0
+            ? <div className="flex justify-between text-base font-extrabold"><span>المطلوب من الزبون</span><span className="text-gold">{formatSDG(diff)}</span></div>
+            : <div className="flex justify-between text-base font-extrabold"><span>المستحق للزبون (يُدفع له)</span><span className="text-gold">{formatSDG(-diff)}</span></div>}
         </div>
         <Button className="w-full" onClick={submit} disabled={busy || !phone}>إتمام البيع وطباعة الفاتورة</Button>
       </div>

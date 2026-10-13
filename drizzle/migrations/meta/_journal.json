@@ -64,6 +64,13 @@
       "when": 1791908683616,
       "tag": "0008_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791908839327,
+      "tag": "0009_allow_trade_in_above_price",
+      "breakpoints": true
     }
   ]
 }
