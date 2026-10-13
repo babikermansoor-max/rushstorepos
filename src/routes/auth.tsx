@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { normalizeUsername, usernameToEmail } from "@/lib/username";
+import { passwordProblem } from "@/lib/password";
+import { secureSignIn } from "@/lib/login.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,11 +52,19 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: usernameToEmail(handle),
-          password,
+        const res = await secureSignIn({ data: { username: handle, password } });
+        if (!res.ok) {
+          if (res.waitSeconds > 0) {
+            const m = Math.ceil(res.waitSeconds / 60);
+            throw new Error(`محاولات كثيرة. حاول مرة أخرى بعد ${m} دقيقة`);
+          }
+          throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة");
+        }
+        const { error } = await supabase.auth.setSession({
+          access_token: res.access_token,
+          refresh_token: res.refresh_token,
         });
-        if (error) throw new Error("اسم المستخدم أو كلمة المرور غير صحيحة");
+        if (error) throw new Error("تعذر تسجيل الدخول");
         toast.success("تم تسجيل الدخول");
         navigate({ to: "/", replace: true });
       } else {
@@ -62,6 +72,12 @@ function AuthPage() {
         if (phone.trim().length < 6) {
           signingUp.current = false;
           toast.error("أدخل رقم هاتف صحيح");
+          return;
+        }
+        const pwErr = passwordProblem(password);
+        if (pwErr) {
+          signingUp.current = false;
+          toast.error(pwErr);
           return;
         }
         const { error } = await supabase.auth.signUp({

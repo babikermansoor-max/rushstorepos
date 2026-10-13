@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { normalizeUsername, usernameToEmail } from "@/lib/username";
+import { passwordProblem } from "@/lib/password";
 
 type NewStaff = {
   username: string;
@@ -17,7 +18,8 @@ export const createStaffAccount = createServerFn({ method: "POST" })
   .inputValidator((input: NewStaff) => {
     const username = normalizeUsername(input?.username ?? "");
     if (username.length < 3) throw new Error("اسم المستخدم قصير جداً");
-    if (!input?.password || input.password.length < 6) throw new Error("كلمة المرور قصيرة جداً");
+    const pwErr = passwordProblem(input?.password ?? "");
+    if (pwErr) throw new Error(pwErr);
     if (!["owner", "manager", "cashier", "warehouse"].includes(input?.role)) throw new Error("صلاحية غير صالحة");
     return { ...input, username };
   })
@@ -71,7 +73,8 @@ export const setStaffPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { userId: string; password: string }) => {
     if (!input?.userId) throw new Error("مستخدم غير صالح");
-    if (!input?.password || input.password.length < 6) throw new Error("كلمة المرور قصيرة جداً");
+    const pwErr = passwordProblem(input?.password ?? "");
+    if (pwErr) throw new Error(pwErr);
     return input;
   })
   .handler(async ({ data, context }) => {
