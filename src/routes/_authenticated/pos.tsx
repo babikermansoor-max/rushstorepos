@@ -25,9 +25,12 @@ export const Route = createFileRoute("/_authenticated/pos")({
 
 type CartLine = { id: string; name: string; price: number; qty: number; stock: number; discount: number };
 
+// أقصى نسبة خصم مسموحة لجميع المستخدمين
+const MAX_DISCOUNT = 5;
+
 // السعر بعد التخفيض بالنسبة المئوية
 function netPrice(l: CartLine) {
-  const d = Math.min(Math.max(l.discount || 0, 0), 100);
+  const d = Math.min(Math.max(l.discount || 0, 0), MAX_DISCOUNT);
   return Math.round(l.price * (1 - d / 100) * 100) / 100;
 }
 type ProductRow = { id: string; name: string; barcode: string | null; sale_price: number; category_id: string | null; stock: number };
@@ -146,7 +149,8 @@ function POS() {
   }
 
   function setDiscount(id: string, value: number) {
-    const d = Number.isFinite(value) ? Math.min(Math.max(value, 0), 100) : 0;
+    if (Number.isFinite(value) && value > MAX_DISCOUNT) toast.warning(`أقصى خصم مسموح ${MAX_DISCOUNT}%`);
+    const d = Number.isFinite(value) ? Math.min(Math.max(value, 0), MAX_DISCOUNT) : 0;
     setCart((prev) => prev.map((l) => (l.id === id ? { ...l, discount: d } : l)));
   }
 
@@ -395,7 +399,7 @@ function POS() {
                     className="h-7 w-14 rounded-md bg-card text-center text-sm font-bold"
                   />
                   <div className="flex gap-1">
-                    {[5, 10, 20].map((d) => (
+                    {[MAX_DISCOUNT].map((d) => (
                       <button
                         key={d}
                         onClick={() => setDiscount(l.id, l.discount === d ? 0 : d)}
