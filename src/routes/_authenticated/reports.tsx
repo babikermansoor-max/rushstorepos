@@ -99,7 +99,10 @@ function Reports() {
   const sales = data?.sales ?? [];
   const total = sales.reduce((s, r) => s + Number(r.total), 0);
   const cash = sales.filter((s) => s.payment_method === "cash").reduce((s, r) => s + Number(r.total), 0);
-  const bankak = total - cash;
+  const byM = (m: string) => sales.filter((s) => s.payment_method === m).reduce((s, r) => s + Number(r.total), 0);
+  const bankak = byM("bankak");
+  const fawry = byM("fawry");
+  const okash = byM("okash");
   const returned = (data?.returns ?? []).reduce((s, r) => s + Number(r.amount), 0);
   const netSales = total - returned;
   const expenses = (data?.expenses ?? []).reduce((s, r) => s + Number(r.amount), 0);
@@ -253,6 +256,8 @@ function Reports() {
         <Stat label="عدد الفواتير" value={formatNumber(sales.length)} />
         <Stat label="نقدي" value={formatSDG(cash)} />
         <Stat label="بنكك" value={formatSDG(bankak)} />
+        <Stat label="فوري" value={formatSDG(fawry)} />
+        <Stat label="أوكاش" value={formatSDG(okash)} />
         <Stat label="تكلفة المبيعات" value={formatSDG(netCogs)} />
         <Stat label="مجمل الربح" value={formatSDG(grossProfit)} />
         <Stat label="المصروفات" value={formatSDG(expenses)} />

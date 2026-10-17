@@ -53,7 +53,7 @@ function Dashboard() {
       const returned = (rets.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
       const returnedUnits = (rets.data ?? []).reduce((s, r) => s + Number(r.quantity), 0);
       const units = (items.data ?? []).reduce((s, r) => s + Number(r.quantity), 0) - returnedUnits;
-      const byMethod: Record<string, number> = { cash: 0, bankak: 0 };
+      const byMethod: Record<string, number> = { cash: 0, bankak: 0, fawry: 0, okash: 0 };
       list.forEach((r) => {
         byMethod[r.payment_method] = (byMethod[r.payment_method] ?? 0) + Number(r.total);
       });
@@ -81,7 +81,7 @@ function Dashboard() {
   ];
 
 
-  const totalPay = (data?.byMethod["cash"] ?? 0) + (data?.byMethod["bankak"] ?? 0);
+  const totalPay = Object.values(data?.byMethod ?? {}).reduce((a, b) => a + b, 0);
 
   return (
     <div>
@@ -108,7 +108,7 @@ function Dashboard() {
         <div className="surface p-5">
           <h2 className="font-bold">طرق الدفع اليوم</h2>
           <div className="mt-4 space-y-4">
-            {(["cash", "bankak"] as const).map((m) => {
+            {(["cash", "bankak", "fawry", "okash"] as const).map((m) => {
               const value = data?.byMethod[m] ?? 0;
               const pct = totalPay ? Math.round((value / totalPay) * 100) : 0;
               return (
