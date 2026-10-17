@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
-import { formatSDG, PAYMENT_LABELS } from "@/lib/format";
+import { formatSDG, PAYMENT_LABELS, PAYMENT_METHODS, type PaymentMethod } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -50,7 +50,7 @@ function Expenses() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>("عام");
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<"cash" | "bankak">("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [notes, setNotes] = useState("");
   const [spentAt, setSpentAt] = useState(today());
 
@@ -161,7 +161,7 @@ function Expenses() {
                 placeholder="المبلغ"
               />
               <div className="grid grid-cols-2 gap-2">
-                {(["cash", "bankak"] as const).map((m) => (
+                {PAYMENT_METHODS.map((m) => (
                   <button
                     key={m}
                     onClick={() => setMethod(m)}

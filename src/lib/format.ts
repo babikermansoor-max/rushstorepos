@@ -20,9 +20,14 @@ export function formatDateTime(value: string | Date): string {
   })}`;
 }
 
+export const PAYMENT_METHODS = ["cash", "bankak", "fawry", "okash"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
 export const PAYMENT_LABELS: Record<string, string> = {
   cash: "نقدي",
   bankak: "بنكك",
+  fawry: "فوري",
+  okash: "أوكاش",
 };
 
 export const ROLE_LABELS: Record<string, string> = {

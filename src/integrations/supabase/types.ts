@@ -747,7 +747,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "manager" | "cashier" | "warehouse"
-      payment_method: "cash" | "bankak"
+      payment_method: "cash" | "bankak" | "fawry" | "okash"
       phone_condition: "new" | "used"
       phone_status: "available" | "sold"
       repair_status:
@@ -884,7 +884,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "manager", "cashier", "warehouse"],
-      payment_method: ["cash", "bankak"],
+      payment_method: ["cash", "bankak", "fawry", "okash"],
       phone_condition: ["new", "used"],
       phone_status: ["available", "sold"],
       repair_status: [

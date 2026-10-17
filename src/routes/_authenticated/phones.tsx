@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
 import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
-import { PAYMENT_LABELS, formatDateTime, formatSDG } from "@/lib/format";
+import { PAYMENT_LABELS, PAYMENT_METHODS, type PaymentMethod, formatDateTime, formatSDG } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -294,7 +294,7 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
   const [price, setPrice] = useState("");
   const [customer, setCustomer] = useState("");
   const [custPhone, setCustPhone] = useState("");
-  const [method, setMethod] = useState<"cash" | "bankak">("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [tradeIn, setTradeIn] = useState(false);
   const [t, setT] = useState({ ...emptyForm, condition: "used" as const });
   const [tValue, setTValue] = useState("");
@@ -378,8 +378,8 @@ function SellTab({ phones, me }: { phones: Phone[]; me: Me }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1"><Label>سعر البيع</Label><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></div>
           <div className="space-y-1"><Label>طريقة الدفع</Label>
-            <select className={sel} value={method} onChange={(e) => setMethod(e.target.value as "cash" | "bankak")}>
-              <option value="cash">{PAYMENT_LABELS['cash']}</option><option value="bankak">{PAYMENT_LABELS['bankak']}</option>
+            <select className={sel} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+              {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_LABELS[m]}</option>)}
             </select>
           </div>
           <div className="space-y-1"><Label>اسم الزبون</Label><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></div>

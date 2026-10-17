@@ -1,3 +1,4 @@
+import { PAYMENT_LABELS, PAYMENT_METHODS, type PaymentMethod } from "@/lib/format";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -45,7 +46,7 @@ function POS() {
   const [category, setCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customer, setCustomer] = useState("");
-  const [method, setMethod] = useState<"cash" | "bankak">("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [paid, setPaid] = useState("");
   const [paidTouched, setPaidTouched] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -424,7 +425,7 @@ function POS() {
           />
 
           <div className="mb-3 grid grid-cols-2 gap-2">
-            {(["cash", "bankak"] as const).map((m) => (
+            {PAYMENT_METHODS.map((m) => (
               <button
                 key={m}
                 onClick={() => setMethod(m)}
@@ -432,7 +433,7 @@ function POS() {
                   method === m ? "border-primary bg-accent text-accent-foreground" : "border-border bg-card"
                 }`}
               >
-                {m === "cash" ? "نقدي" : "بنكك"}
+                {PAYMENT_LABELS[m]}
               </button>
             ))}
           </div>
