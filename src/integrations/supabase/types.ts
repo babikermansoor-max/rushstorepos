@@ -276,6 +276,7 @@ export type Database = {
           color: string | null
           condition: Database["public"]["Enums"]["phone_condition"]
           cost_price: number
+          cost_price_aed: number
           created_at: string
           created_by: string | null
           grade: string | null
@@ -284,6 +285,7 @@ export type Database = {
           model: string
           notes: string | null
           sale_price: number
+          sale_price_aed: number
           seller_name: string | null
           seller_phone: string | null
           status: Database["public"]["Enums"]["phone_status"]
@@ -297,6 +299,7 @@ export type Database = {
           color?: string | null
           condition?: Database["public"]["Enums"]["phone_condition"]
           cost_price?: number
+          cost_price_aed?: number
           created_at?: string
           created_by?: string | null
           grade?: string | null
@@ -305,6 +308,7 @@ export type Database = {
           model: string
           notes?: string | null
           sale_price?: number
+          sale_price_aed?: number
           seller_name?: string | null
           seller_phone?: string | null
           status?: Database["public"]["Enums"]["phone_status"]
@@ -318,6 +322,7 @@ export type Database = {
           color?: string | null
           condition?: Database["public"]["Enums"]["phone_condition"]
           cost_price?: number
+          cost_price_aed?: number
           created_at?: string
           created_by?: string | null
           grade?: string | null
@@ -326,6 +331,7 @@ export type Database = {
           model?: string
           notes?: string | null
           sale_price?: number
+          sale_price_aed?: number
           seller_name?: string | null
           seller_phone?: string | null
           status?: Database["public"]["Enums"]["phone_status"]
