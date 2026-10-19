@@ -68,7 +68,26 @@ export function ExchangeRateDialog() {
           const failed = results.find((r) => r.error);
           if (failed?.error) throw failed.error;
         }
-        toast.success(`تم تحديث سعر الصرف وإعادة تسعير ${list.length} منتج`);
+        const { data: phs, error: phErr } = await supabase
+          .from("phones")
+          .select("id, cost_price_aed, sale_price_aed")
+          .eq("status", "available")
+          .or("cost_price_aed.gt.0,sale_price_aed.gt.0");
+        if (phErr) throw phErr;
+        const phList = phs ?? [];
+        for (let i = 0; i < phList.length; i += 100) {
+          const results = await Promise.all(
+            phList.slice(i, i + 100).map((p) => {
+              const patch: { cost_price?: number; sale_price?: number } = {};
+              if (Number(p.cost_price_aed) > 0) patch.cost_price = aedToSdg(Number(p.cost_price_aed), nextRate);
+              if (Number(p.sale_price_aed) > 0) patch.sale_price = aedToSdg(Number(p.sale_price_aed), nextRate);
+              return supabase.from("phones").update(patch).eq("id", p.id);
+            }),
+          );
+          const failed = results.find((r) => r.error);
+          if (failed?.error) throw failed.error;
+        }
+        toast.success(`تم تحديث سعر الصرف وإعادة تسعير ${list.length} منتج و${phList.length} هاتف`);
       } else {
         toast.success("تم حفظ سعر الصرف");
       }

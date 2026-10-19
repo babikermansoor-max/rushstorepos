@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession } from "@/hooks/useSession";
 import { PageHeader } from "@/components/AppLayout";
 import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
+import { useAedRate, aedToSdg } from "@/components/ExchangeRate";
 import { PAYMENT_LABELS, PAYMENT_METHODS, type PaymentMethod, formatDateTime, formatSDG } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,8 @@ type Phone = {
   notes: string | null;
   cost_price: number;
   sale_price: number;
+  cost_price_aed: number;
+  sale_price_aed: number;
   status: "available" | "sold";
   branches?: { name: string } | null;
 };
@@ -105,6 +108,7 @@ function Phones() {
 const emptyForm = {
   imei: "", brand: "", model: "", storage: "", color: "", condition: "new" as "new" | "used",
   grade: "", battery_health: "", seller_name: "", seller_phone: "", notes: "", cost_price: "", sale_price: "",
+  cost_price_aed: "", sale_price_aed: "",
 };
 
 function StockTab({ phones, isAdmin, isOwner, branchId }: { phones: Phone[]; isAdmin: boolean; isOwner: boolean; branchId: string | null }) {
@@ -132,6 +136,7 @@ function StockTab({ phones, isAdmin, isOwner, branchId }: { phones: Phone[]; isA
       condition: p.condition, grade: p.grade ?? "", battery_health: p.battery_health?.toString() ?? "",
       seller_name: p.seller_name ?? "", seller_phone: p.seller_phone ?? "", notes: p.notes ?? "",
       cost_price: String(p.cost_price), sale_price: String(p.sale_price),
+      cost_price_aed: p.cost_price_aed ? String(p.cost_price_aed) : "", sale_price_aed: p.sale_price_aed ? String(p.sale_price_aed) : "",
     });
     setOpen(true);
   }
@@ -147,6 +152,7 @@ function StockTab({ phones, isAdmin, isOwner, branchId }: { phones: Phone[]; isA
       grade: used ? f.grade || null : null, battery_health: used ? bh : null,
       seller_name: used ? f.seller_name.trim() || null : null, seller_phone: used ? f.seller_phone.trim() || null : null,
       notes: f.notes.trim() || null, cost_price: Number(f.cost_price) || 0, sale_price: Number(f.sale_price) || 0,
+      cost_price_aed: Number(f.cost_price_aed) || 0, sale_price_aed: Number(f.sale_price_aed) || 0,
     };
     setBusy(true);
     const { error } = editId
@@ -246,6 +252,7 @@ function PhoneFields({
 }) {
   const set = (k: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const used = fixedUsed || f.condition === "used";
+  const rate = useAedRate().data?.rate ?? 0;
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="col-span-2 space-y-1"><Label>IMEI *</Label><Input value={f.imei} onChange={set("imei")} inputMode="numeric" /></div>
@@ -275,8 +282,11 @@ function PhoneFields({
       <div className="col-span-2 space-y-1"><Label>ملاحظات وعيوب</Label><Input value={f.notes} onChange={set("notes")} /></div>
       {withPrices && (
         <>
-          <div className="space-y-1"><Label>سعر الشراء</Label><Input type="number" value={f.cost_price} onChange={set("cost_price")} /></div>
-          <div className="space-y-1"><Label>سعر البيع</Label><Input type="number" value={f.sale_price} onChange={set("sale_price")} /></div>
+          <div className="space-y-1"><Label>سعر الشراء بالدرهم</Label><Input type="number" value={f.cost_price_aed} onChange={(e) => setF({ ...f, cost_price_aed: e.target.value, cost_price: Number(e.target.value) > 0 && rate > 0 ? String(aedToSdg(Number(e.target.value), rate)) : f.cost_price })} /></div>
+          <div className="space-y-1"><Label>سعر البيع بالدرهم</Label><Input type="number" value={f.sale_price_aed} onChange={(e) => setF({ ...f, sale_price_aed: e.target.value, sale_price: Number(e.target.value) > 0 && rate > 0 ? String(aedToSdg(Number(e.target.value), rate)) : f.sale_price })} /></div>
+          <div className="space-y-1"><Label>سعر الشراء (ج.س)</Label><Input type="number" value={f.cost_price} onChange={set("cost_price")} /></div>
+          <div className="space-y-1"><Label>سعر البيع (ج.س)</Label><Input type="number" value={f.sale_price} onChange={set("sale_price")} /></div>
+          <p className="col-span-2 text-xs text-muted-foreground">{rate > 0 ? `سعر الصرف: ${rate} ج.س/درهم — الأسعار بالدرهم تتحدث تلقائياً عند تغيير سعر الصرف` : "حدّد سعر الصرف أولاً"}</p>
         </>
       )}
     </div>
