@@ -1,0 +1,14 @@
+# Rush Store app container. Runs next to the official self-hosted Supabase stack
+# (cloned into /opt/supabase/docker — see DEPLOY_CONTABO.md).
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: always
+    env_file: ../.env.production
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"
