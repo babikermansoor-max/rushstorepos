@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Self-hosting on Contabo lives in deploy/ and DEPLOY_CONTABO.md; deploy/migrate.sh replays supabase/migrations then drizzle/migrations, so keep every schema change in those folders.
