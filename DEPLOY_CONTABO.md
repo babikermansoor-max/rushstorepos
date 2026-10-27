@@ -34,7 +34,7 @@ bash deploy/migrate.sh
    ```bash
    curl -X POST https://api.rushstorepos.com/auth/v1/admin/users \
      -H "apikey: <SERVICE_ROLE_KEY>" -H "Authorization: Bearer <SERVICE_ROLE_KEY>" -H "Content-Type: application/json" \
-     -d '{"email":"<اسم المستخدم>@rush.local","password":"<كلمة مرور>","email_confirm":true,"id":"<نفس id المالك في profiles.csv>"}'
+     -d '{"email":"<اسم المستخدم>@rushstore.local","password":"<كلمة مرور>","email_confirm":true,"id":"<نفس id المالك في profiles.csv>"}'
    ```
    كرر نفس الأمر لكل موظف بنفس الـ `id` الموجود في `profiles.csv` (عشان فواتيره وصلاحياته ترتبط به). صيغة البريد مطابقة لما في الملف `src/lib/username.ts`. بعدها المالك يقدر يغيّر كلمات المرور من صفحة الموظفين.
 4. استورد البيانات:
