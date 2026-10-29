@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetchAll";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Printer, Tags, Trash2 } from "lucide-react";
@@ -197,7 +198,7 @@ function StockReport() {
       ]);
       return {
         items: items as unknown as MovementItem[],
-        names: new Map((profiles ?? []).map((p) => [p.id, p.full_name])),
+        names: new Map<string, string>((profiles ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name])),
         returns: rets as ReturnRow[],
       };
     },
