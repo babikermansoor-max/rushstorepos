@@ -50,40 +50,56 @@ function Reports() {
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${to}T23:59:59`).toISOString();
-      let salesQ = supabase
-        .from("sales")
-        .select(
-          "id, invoice_no, total, payment_method, created_at, branch_id, cashier_id, customer_name, branches(name)",
-        )
-        .gte("created_at", start)
-        .lte("created_at", end)
-        .order("created_at", { ascending: false });
-      let itemsQ = supabase
-        .from("sale_items")
-        .select(
-          "sale_id, product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)",
-        )
-        .gte("sales.created_at", start)
-        .lte("sales.created_at", end);
-      let retQ = supabase
-        .from("returns")
-        .select("product_id, amount, quantity, created_at, branch_id")
-        .gte("created_at", start)
-        .lte("created_at", end);
-      let expQ = supabase.from("expenses").select("amount, spent_at, branch_id").gte("spent_at", from).lte("spent_at", to);
-      if (branch !== "all") {
-        salesQ = salesQ.eq("branch_id", branch);
-        itemsQ = itemsQ.eq("sales.branch_id", branch);
-        retQ = retQ.eq("branch_id", branch);
-        expQ = expQ.eq("branch_id", branch);
-      }
-      const [{ data: sales }, { data: items }, { data: rets }, { data: exps }] = await Promise.all([
-        salesQ,
-        itemsQ,
-        retQ,
-        expQ,
+      const b = branch;
+      const salesQ = () => {
+        let q = supabase
+          .from("sales")
+          .select(
+            "id, invoice_no, total, payment_method, created_at, branch_id, cashier_id, customer_name, branches(name)",
+          )
+          .gte("created_at", start)
+          .lte("created_at", end);
+        if (b !== "all") q = q.eq("branch_id", b);
+        return q.order("created_at", { ascending: false }).order("id");
+      };
+      const itemsQ = () => {
+        let q = supabase
+          .from("sale_items")
+          .select(
+            "sale_id, product_id, product_name, quantity, unit_price, unit_cost, sales!inner(created_at, branch_id)",
+          )
+          .gte("sales.created_at", start)
+          .lte("sales.created_at", end);
+        if (b !== "all") q = q.eq("sales.branch_id", b);
+        return q.order("id");
+      };
+      const retQ = () => {
+        let q = supabase
+          .from("returns")
+          .select("product_id, amount, quantity, created_at, branch_id")
+          .gte("created_at", start)
+          .lte("created_at", end);
+        if (b !== "all") q = q.eq("branch_id", b);
+        return q.order("id");
+      };
+      const expQ = () => {
+        let q = supabase.from("expenses").select("amount, spent_at, branch_id").gte("spent_at", from).lte("spent_at", to);
+        if (b !== "all") q = q.eq("branch_id", b);
+        return q.order("id");
+      };
+      type SaleRow = {
+        id: string; invoice_no: number; total: number; payment_method: string; created_at: string;
+        branch_id: string | null; cashier_id: string | null; customer_name: string | null; branches: { name: string } | null;
+      };
+      type ItemRow = { sale_id: string; product_id: string | null; product_name: string; quantity: number; unit_price: number; unit_cost: number };
+      type RetRow = { product_id: string | null; amount: number; quantity: number };
+      const [sales, items, rets, exps, prods] = await Promise.all([
+        fetchAll<SaleRow>(salesQ),
+        fetchAll<ItemRow>(itemsQ),
+        fetchAll<RetRow>(retQ),
+        fetchAll<{ amount: number }>(expQ),
+        fetchAll<{ id: string; cost_price: number }>(() => supabase.from("products").select("id, cost_price").order("id")),
       ]);
-      const { data: prods } = await supabase.from("products").select("id, cost_price");
       const { data: profs } = await supabase.rpc("staff_directory");
       return {
         sales: sales ?? [],
