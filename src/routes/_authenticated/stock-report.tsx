@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fetchAll } from "@/lib/fetchAll";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Printer, Tags, Trash2 } from "lucide-react";
@@ -147,13 +148,14 @@ function StockReport() {
   const { data: allProducts } = useQuery({
     queryKey: ["products-basic"],
     queryFn: async () =>
-      ((
-        await supabase
+      (await fetchAll(() =>
+        supabase
           .from("products")
           .select("id, name, barcode, cost_price, cost_price_aed, sale_price, category_id, branch_id, categories(name)")
           .eq("is_active", true)
           .order("name")
-      ).data ?? []) as unknown as Product[],
+          .order("id"),
+      )) as unknown as Product[],
   });
   const products = useMemo(
     () => (allProducts ?? []).filter((p) => branch === "all" || p.branch_id === branch),
@@ -163,7 +165,9 @@ function StockReport() {
   const { data: stock, isLoading } = useQuery({
     queryKey: ["stock-report"],
     queryFn: async () =>
-      ((await supabase.from("stock").select("quantity, branch_id, product_id")).data ?? []) as StockRow[],
+      (await fetchAll(() =>
+        supabase.from("stock").select("quantity, branch_id, product_id").order("product_id").order("branch_id"),
+      )) as StockRow[],
   });
 
   const { data: movement } = useQuery({
@@ -171,25 +175,31 @@ function StockReport() {
     queryFn: async () => {
       const start = new Date(`${from}T00:00:00`).toISOString();
       const end = new Date(`${to}T23:59:59`).toISOString();
-      const [{ data: items }, { data: profiles }, { data: rets }] = await Promise.all([
-        supabase
-          .from("sale_items")
-          .select(
-            "product_id, product_name, quantity, unit_price, unit_cost, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
-          )
-          .gte("sales.created_at", start)
-          .lte("sales.created_at", end),
+      const [items, { data: profiles }, rets] = await Promise.all([
+        fetchAll(() =>
+          supabase
+            .from("sale_items")
+            .select(
+              "product_id, product_name, quantity, unit_price, unit_cost, sales!inner(id, created_at, cashier_id, branch_id, payment_method, invoice_no, customer_name, total)",
+            )
+            .gte("sales.created_at", start)
+            .lte("sales.created_at", end)
+            .order("id"),
+        ),
         supabase.rpc("staff_directory"),
-        supabase
-          .from("returns")
-          .select("product_id, product_name, quantity, amount, branch_id, created_at")
-          .gte("created_at", start)
-          .lte("created_at", end),
+        fetchAll(() =>
+          supabase
+            .from("returns")
+            .select("product_id, product_name, quantity, amount, branch_id, created_at")
+            .gte("created_at", start)
+            .lte("created_at", end)
+            .order("id"),
+        ),
       ]);
       return {
-        items: (items ?? []) as unknown as MovementItem[],
-        names: new Map((profiles ?? []).map((p) => [p.id, p.full_name])),
-        returns: (rets ?? []) as ReturnRow[],
+        items: items as unknown as MovementItem[],
+        names: new Map<string, string>((profiles ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name])),
+        returns: rets as ReturnRow[],
       };
     },
   });
