@@ -8,6 +8,7 @@ import { ReceiptDialog, type ReceiptData } from "@/components/Receipt";
 import { PAYMENT_LABELS, formatDateTime, formatNumber, formatSDG } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fetchAll } from "@/lib/fetchAll";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => ({
@@ -160,13 +161,15 @@ function Reports() {
   const { data: phoneSales = [] } = useQuery({
     queryKey: ["reports-phones", from, to, branch],
     queryFn: async () => {
-      let q = supabase
-        .from("phone_sales")
-        .select("sale_price, unit_cost, branch_id")
-        .gte("created_at", new Date(`${from}T00:00:00`).toISOString())
-        .lte("created_at", new Date(`${to}T23:59:59`).toISOString());
-      if (branch !== "all") q = q.eq("branch_id", branch);
-      return (await q).data ?? [];
+      return fetchAll<{ sale_price: number; unit_cost: number }>(() => {
+        let q = supabase
+          .from("phone_sales")
+          .select("sale_price, unit_cost, branch_id")
+          .gte("created_at", new Date(`${from}T00:00:00`).toISOString())
+          .lte("created_at", new Date(`${to}T23:59:59`).toISOString());
+        if (branch !== "all") q = q.eq("branch_id", branch);
+        return q.order("id");
+      });
     },
   });
   const phoneTotal = phoneSales.reduce((s, r) => s + Number(r.sale_price), 0);
@@ -193,6 +196,18 @@ function Reports() {
   }, [data]);
 
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const openInvoice = async (inv: ReceiptData & { id: string }) => {
+    const { data: its } = await supabase
+      .from("sale_items")
+      .select("product_name, quantity, unit_price")
+      .eq("sale_id", inv.id);
+    setReceipt({
+      ...inv,
+      items: its?.length
+        ? its.map((i) => ({ name: i.product_name, qty: Number(i.quantity), price: Number(i.unit_price) }))
+        : inv.items,
+    });
+  };
 
 
   return (
@@ -321,7 +336,7 @@ function Reports() {
                 {invoices.map((inv) => (
                   <tr
                     key={inv.id}
-                    onClick={() => setReceipt(inv)}
+                    onClick={() => void openInvoice(inv)}
                     className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-muted"
                   >
                     <td className="p-3 font-bold" dir="ltr">
