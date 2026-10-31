@@ -92,6 +92,13 @@
       "when": 1793440000000,
       "tag": "0012_staff_delete_keep_history",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793442642249,
+      "tag": "0013_expenses_creator_set_null",
+      "breakpoints": true
     }
   ]
 }
