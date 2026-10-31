@@ -85,6 +85,13 @@
       "when": 1792404860222,
       "tag": "0011_phones_aed_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793440000000,
+      "tag": "0012_staff_delete_keep_history",
+      "breakpoints": true
     }
   ]
 }
