@@ -91,3 +91,24 @@ export const setStaffPassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Owner-only: delete a staff account. Past sales/expenses stay (their user link becomes empty). */
+export const deleteStaffAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string }) => {
+    if (!input?.userId) throw new Error("مستخدم غير صالح");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: isOwner } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "owner",
+    });
+    if (!isOwner) throw new Error("هذه العملية للمالك فقط");
+    if (data.userId === context.userId) throw new Error("لا يمكنك حذف حسابك الحالي");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

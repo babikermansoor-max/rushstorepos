@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, KeyRound, Check, X, UserPlus } from "lucide-react";
+import { Plus, KeyRound, Check, X, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useSession, type AppRole } from "@/hooks/useSession";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { setStaffPassword, createStaffAccount } from "@/lib/staff.functions";
+import { setStaffPassword, createStaffAccount, deleteStaffAccount } from "@/lib/staff.functions";
 
 
 export const Route = createFileRoute("/_authenticated/users")({
@@ -39,6 +39,7 @@ function UsersPage() {
   const [newPassword, setNewPassword] = useState("");
   const changePassword = useServerFn(setStaffPassword);
   const createAccount = useServerFn(createStaffAccount);
+  const deleteAccount = useServerFn(deleteStaffAccount);
   const [accOpen, setAccOpen] = useState(false);
   const [accBusy, setAccBusy] = useState(false);
   const emptyAcc = {
@@ -125,6 +126,17 @@ function UsersPage() {
     else {
       toast.success(approved ? "تم اعتماد الحساب" : "تم إيقاف الحساب");
       queryClient.invalidateQueries({ queryKey: ["staff"] });
+    }
+  }
+
+  async function removeStaff(userId: string, name: string) {
+    if (!confirm(`هل أنت متأكد من حذف الموظف (${name})؟\nستبقى فواتيره السابقة محفوظة.`)) return;
+    try {
+      await deleteAccount({ data: { userId } });
+      toast.success("تم حذف الموظف");
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر حذف الموظف");
     }
   }
 
@@ -373,13 +385,25 @@ function UsersPage() {
                   </td>
                   <td className="p-3">
                     {me.isOwner ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setPwUser({ id: s.id, name: s.full_name || s.username || "" })}
-                      >
-                        <KeyRound className="size-4" /> تغيير
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setPwUser({ id: s.id, name: s.full_name || s.username || "" })}
+                        >
+                          <KeyRound className="size-4" /> تغيير
+                        </Button>
+                        {s.id !== user?.id && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            aria-label="حذف الموظف"
+                            onClick={() => removeStaff(s.id, s.full_name || s.username || "")}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">للمالك فقط</span>
                     )}
