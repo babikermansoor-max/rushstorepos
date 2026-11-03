@@ -990,8 +990,14 @@ function StockReport() {
             (s, c) => s + c.items.reduce((a, p) => a + p.stockSale, 0),
             0,
           );
+          const soldUnits = filteredCategoryReport.reduce((s, c) => s + c.items.reduce((a, p) => a + p.units, 0), 0);
+          const soldRevenue = filteredCategoryReport.reduce((s, c) => s + c.items.reduce((a, p) => a + p.revenue, 0), 0);
+          const soldCost = filteredCategoryReport.reduce((s, c) => s + c.items.reduce((a, p) => a + p.cost, 0), 0);
           const cards = [
-            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "القطع المباعة", value: formatNumber(soldUnits), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "إجمالي المبيعات", value: formatSDG(soldRevenue), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "الربح المحقق", value: formatSDG(soldRevenue - soldCost), tone: "border-success/40 bg-success/10 text-success" },
+            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-border bg-muted text-foreground" },
             { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "border-border bg-muted text-foreground" },
             { label: "إجمالي القطع", value: formatNumber(totalQty), tone: "border-border bg-muted text-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
@@ -1058,7 +1064,12 @@ function StockReport() {
                     <td className="p-3 text-muted-foreground">—</td>
                     <td className="p-3 text-muted-foreground">—</td>
                     <td className="p-3 font-bold">{formatNumber(qty)}</td>
-                    <td className="p-3 text-muted-foreground">{formatNumber(units)}</td>
+                    <td className="p-3 font-bold">
+                      {formatNumber(units)}
+                      <span className="block text-[11px] font-normal text-gold">
+                        {formatSDG(c.items.reduce((s, p) => s + p.revenue, 0))}
+                      </span>
+                    </td>
                     <td className="p-3 text-muted-foreground">{formatNumber(invoices)}</td>
                     <td className="p-3 text-muted-foreground">{formatSDG(stockCost)}</td>
                     <td className="p-3 font-bold text-gold">{formatSDG(stockSale)}</td>
