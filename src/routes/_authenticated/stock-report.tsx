@@ -990,8 +990,14 @@ function StockReport() {
             (s, c) => s + c.items.reduce((a, p) => a + p.stockSale, 0),
             0,
           );
+          const soldUnits = filteredCategoryReport.reduce((s, c) => s + c.items.reduce((a, p) => a + p.units, 0), 0);
+          const soldRevenue = filteredCategoryReport.reduce((s, c) => s + c.items.reduce((a, p) => a + p.revenue, 0), 0);
+          const soldCost = filteredCategoryReport.reduce((s, c) => s + c.items.reduce((a, p) => a + p.cost, 0), 0);
           const cards = [
-            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "القطع المباعة", value: formatNumber(soldUnits), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "إجمالي المبيعات", value: formatSDG(soldRevenue), tone: "border-gold bg-gold-soft text-gold" },
+            { label: "الربح المحقق", value: formatSDG(soldRevenue - soldCost), tone: "border-success/40 bg-success/10 text-success" },
+            { label: "عدد الأصناف", value: formatNumber(catCount), tone: "border-border bg-muted text-foreground" },
             { label: "إجمالي المنتجات", value: formatNumber(prodCount), tone: "border-border bg-muted text-foreground" },
             { label: "إجمالي القطع", value: formatNumber(totalQty), tone: "border-border bg-muted text-foreground" },
             { label: "قيمة التكلفة", value: formatSDG(totalCost), tone: "border-destructive/40 bg-destructive/10 text-destructive" },
