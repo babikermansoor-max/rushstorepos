@@ -1064,7 +1064,12 @@ function StockReport() {
                     <td className="p-3 text-muted-foreground">—</td>
                     <td className="p-3 text-muted-foreground">—</td>
                     <td className="p-3 font-bold">{formatNumber(qty)}</td>
-                    <td className="p-3 text-muted-foreground">{formatNumber(units)}</td>
+                    <td className="p-3 font-bold">
+                      {formatNumber(units)}
+                      <span className="block text-[11px] font-normal text-gold">
+                        {formatSDG(c.items.reduce((s, p) => s + p.revenue, 0))}
+                      </span>
+                    </td>
                     <td className="p-3 text-muted-foreground">{formatNumber(invoices)}</td>
                     <td className="p-3 text-muted-foreground">{formatSDG(stockCost)}</td>
                     <td className="p-3 font-bold text-gold">{formatSDG(stockSale)}</td>
